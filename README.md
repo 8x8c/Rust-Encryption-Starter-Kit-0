@@ -8,7 +8,7 @@ Rust is an awesome lang to make simple, reliable, powerful encryption apps. Each
 
 
 
-The prob with home-made apps is one little mistake can make any encryption script easily crackable. So before a  script/app can be trusted, it needs lots of complicated testing and auditing.  However, if you do not need the very highest encryption security, a few lines of code (any lang) can easily encrypt/decrypt files. Encryption /decryption is a simple file operation. 
+The prob with home-made apps is one little mistake can make any encryption script easily crackable. So before a  script/app can be trusted, it needs lots of complicated testing and auditing.  However, if you do not need the very highest encryption security, a few lines of code (any lang/script) can easily encrypt/decrypt files. Encryption /decryption is a simple file operation. 
 
 
 Note:: For the most serious encryption, use an established, well tested app like https://github.com/str4d/rage or something. Then hit it with a round of the OTP method. As such, possible security flaws of both encryption methods would be mitigated. 
