@@ -1,5 +1,4 @@
 
-![1](https://github.com/user-attachments/assets/0da31db5-93bb-4812-8190-19592a5d5163)
 
 ## A few simple encryption and keygen apps made with Rust.
 
