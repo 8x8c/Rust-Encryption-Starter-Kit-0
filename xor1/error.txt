@@ -1,0 +1,2 @@
+Error: Usage: <app> <file_to_encrypt>
+Error: Usage: <app> <file_to_encrypt>

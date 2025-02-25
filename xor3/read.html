@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure XOR Encryption Tool - Explanation of Improvements</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      line-height: 1.6;
+    }
+    code {
+      background-color: #f4f4f4;
+      padding: 2px 4px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 1em;
+      overflow: auto;
+      border-radius: 4px;
+    }
+    h1, h2, h3 {
+      margin-top: 1.2em;
+    }
+  </style>
+</head>
+<body>
+<h1>Secure XOR Encryption Tool — Explanation of Improvements</h1>
+
+<p>
+This document outlines the key enhancements applied to our "secure XOR" approach, how they work, and how to use this updated tool. 
+</p>
+
+<hr />
+
+<h2>1. Use of <code>OsRng</code> for Nonce Generation</h2>
+<p>
+Previously, the code used <code>rand::thread_rng()</code> to generate random bytes for nonces. While
+<code>thread_rng()</code> typically provides cryptographically secure randomness on most platforms,
+it can fall back to a user-space CSPRNG under rare conditions. By using <code>OsRng</code>, we ensure 
+the nonce is drawn directly from the operating system's cryptographically secure PRNG source, 
+further reducing any chance of weak randomness.
+</p>
+
+<h2>2. HKDF-Based Subkey Separation</h2>
+<p>
+Instead of directly hashing the key file for HMAC, we now employ the 
+<a href="https://datatracker.ietf.org/doc/html/rfc5869" target="_blank" rel="noopener">HKDF</a> 
+(HMAC-based Key Derivation Function) to derive two separate subkeys:
+</p>
+<ul>
+  <li><strong>Encryption Subkey</strong> &mdash; used to generate a keystream.</li>
+  <li><strong>HMAC Subkey</strong> &mdash; used for HMAC generation and verification.</li>
+</ul>
+<p>
+This method guarantees cryptographic independence between these two usages of the original key, 
+following best-practice key separation principles.
+</p>
+
+<h2>3. Zeroizing Sensitive Data</h2>
+<p>
+Sensitive material like encryption keys, subkeys, and intermediate buffers are explicitly cleared 
+from memory (zeroized) after use using the 
+<code>zeroize</code> crate. This helps mitigate side-channel or memory-forensics attacks where 
+sensitive data might remain in RAM longer than necessary.
+</p>
+
+<h2>4. HMAC Verification Before Decryption</h2>
+<p>
+When decrypting, the HMAC of the input data (except the last 32 bytes which are the HMAC tag) is 
+verified before proceeding with the XOR operation. This ensures we never process or output 
+plaintext if the data has been tampered with.
+</p>
+
+<h2>5. Preventing Overwrites and Basic Path Checks</h2>
+<p>
+We added a check to ensure that the user does not accidentally overwrite the existing output file 
+without an explicit choice. The code now also prevents using the same file path for both input 
+and output. These checks reduce the risk of user errors causing data loss.
+</p>
+
+<h2>6. (Optional) Streaming I/O for Large Files</h2>
+<p>
+For clarity, the included code still reads the entire file into memory before processing. In 
+practical scenarios involving very large files, we recommend modifying the tool to process data 
+in chunks. This would entail reading, encrypting/decrypting, and writing chunks of data while 
+continuously updating the HMAC state.
+</p>
+
+<h2>How to Use the Tool</h2>
+<p>
+<strong>1. Build the Project</strong><br/>
+Ensure you have a recent version of Rust and Cargo installed. Then open a terminal in the 
+project directory and run:
+</p>
+<pre><code>cargo build --release
+</code></pre>
+
+<p>
+<strong>2. Run the Encryption Command</strong><br/>
+Use <code>E</code> to encrypt:
+</p>
+<pre><code>./target/release/secure_xor E &lt;input_file&gt; &lt;output_file&gt; &lt;key_file&gt;
+</code></pre>
+<ul>
+  <li><code>&lt;input_file&gt;</code>: The plaintext file to encrypt.</li>
+  <li><code>&lt;output_file&gt;</code>: Destination for the resulting ciphertext.</li>
+  <li><code>&lt;key_file&gt;</code>: Path to the key file (must be at least as large as <code>&lt;input_file&gt;</code>).</li>
+</ul>
+
+<p>
+<strong>3. Run the Decryption Command</strong><br/>
+Use <code>D</code> to decrypt:
+</p>
+<pre><code>./target/release/secure_xor D &lt;input_file&gt; &lt;output_file&gt; &lt;key_file&gt;
+</code></pre>
+<ul>
+  <li><code>&lt;input_file&gt;</code>: The ciphertext file previously produced.</li>
+  <li><code>&lt;output_file&gt;</code>: Where to save the decrypted plaintext.</li>
+  <li><code>&lt;key_file&gt;</code>: Same key file used for the encryption.</li>
+</ul>
+
+<h2>How the App Works Internally</h2>
+<ol>
+  <li><strong>Load the Key and Input Data</strong>:
+    The tool reads both the key file and your input file (plaintext or ciphertext).
+  </li>
+  <li><strong>Generate/Extract Nonce</strong>:
+    For encryption, the app uses <code>OsRng</code> to produce a new, random 16-byte nonce. For 
+    decryption, it extracts the nonce from the first 16 bytes of the ciphertext.
+  </li>
+  <li><strong>HKDF Key Derivation</strong>:
+    The nonce (as salt) plus the user-supplied key file feed into HKDF to produce two subkeys:
+    <ul>
+      <li>One for generating the keystream (<em>encryption_subkey</em>).</li>
+      <li>Another for generating and verifying the HMAC (<em>hmac_subkey</em>).</li>
+    </ul>
+  </li>
+  <li><strong>Keystream Generation</strong>:
+    A SHA-256-based counter function is used to expand <em>encryption_subkey</em> into a 
+    pseudorandom keystream matching the input file’s length. 
+  </li>
+  <li><strong>XOR with Both Key File &amp; Keystream</strong>:
+    The plaintext is first XORed with the key file (byte-for-byte) and then XORed with the 
+    generated keystream, making it significantly harder for attackers to exploit typical XOR 
+    weaknesses.
+  </li>
+  <li><strong>HMAC-SHA256 for Integrity</strong>:
+    The tool computes an HMAC over the combination of nonce + ciphertext using <em>hmac_subkey</em> 
+    and appends it to the output. During decryption, this HMAC is verified before any 
+    decryption happens, thwarting tampering attempts.
+  </li>
+  <li><strong>Zeroizing Sensitive Buffers</strong>:
+    After use, the code overwrites memory buffers containing keys and intermediate data to reduce 
+    the chance of lingering secrets in RAM.
+  </li>
+</ol>
+
+<h2>Key Security Guidelines</h2>
+<ul>
+  <li>For true one-time-pad (OTP) properties, the key file must be at least as long as your 
+      plaintext, and you should <em>never reuse the same key bytes</em> for different messages.</li>
+  <li>Store the key file securely. If an attacker obtains the key file, they can decrypt your data.</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>
+This updated version provides significantly improved security over basic XOR encryption by 
+leveraging modern cryptographic best practices such as HKDF-based subkey separation, strong random 
+nonces, HMAC-based integrity, and zeroized key material. While no solution is perfect for all 
+use cases, these changes substantially harden the approach against common XOR attacks and 
+implementation pitfalls.
+</p>
+
+</body>
+</html>

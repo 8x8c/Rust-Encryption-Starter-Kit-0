@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>AES-256-GCM In-Place Encryption/Decryption Explanation</title>
+</head>
+<body>
+    <h1>AES-256-GCM In-Place Encryption/Decryption Explanation</h1>
+    <p>This page explains how the provided Rust code encrypts and decrypts files in-place using AES-256-GCM.</p>
+
+    <h2>Overview</h2>
+    <ul>
+        <li><strong>Purpose:</strong> This is a command-line tool that encrypts or decrypts a file <em>in-place</em> (i.e., overwriting the original file) using the AES-256-GCM algorithm.</li>
+        <li><strong>Atomic Overwrite:</strong> To avoid data corruption or partial writes, the tool writes the output to a temporary file first, then renames the temporary file over the original file.</li>
+        <li><strong>Security Notice:</strong> The AES key in this sample is <em>hard-coded</em> in Base64 form. This is obviously not secure for production—only for demonstration.</li>
+        <li><strong>Additional Authenticated Data (AAD):</strong> The code includes <code>AAD_DATA</code>, which is used to provide authenticity for additional metadata (e.g., the tool name).</li>
+    </ul>
+
+    <h2>Dependencies</h2>
+    <pre><code>[dependencies]
+anyhow = "1.0"
+aes-gcm = "0.10"
+rand = "0.8"
+clap = { version = "4.2", features = ["derive"] }
+base64 = "0.21"
+uuid = { version = "1.4", features = ["v4"] }
+zeroize = "1.5"
+</code></pre>
+
+    <p><strong>Key Points:</strong></p>
+    <ul>
+        <li><code>aes-gcm</code> provides the AES-GCM encryption/decryption algorithm.</li>
+        <li><code>anyhow</code> is used for simpler error handling.</li>
+        <li><code>rand</code> is used to generate random bytes for the nonce.</li>
+        <li><code>clap</code> handles command-line argument parsing.</li>
+        <li><code>base64</code> decodes the hard-coded key.</li>
+        <li><code>uuid</code> creates a unique temporary filename.</li>
+        <li><code>zeroize</code> securely wipes the plaintext from memory.</li>
+    </ul>
+
+    <h2>Constants</h2>
+    <pre><code>static BASE64_KEY: &str = "BUrKBD6FuC4OPz4eBLTicqB8IBIcMZTe3UP4lnTi5+c=";
+static MAGIC_BYTES: &[u8] = b"AGCM";
+static AAD_DATA: &[u8] = b"MyAES256GCMTool";
+</code></pre>
+    <ol>
+        <li><strong><code>BASE64_KEY</code>:</strong> A 32-byte key (Base64-encoded).</li>
+        <li><strong><code>MAGIC_BYTES</code>:</strong> Used as a &ldquo;file signature&rdquo; to detect whether a file was already encrypted by this tool.</li>
+        <li><strong><code>AAD_DATA</code>:</strong> Additional Authenticated Data for AES-GCM. If these bytes change, you must use the same AAD when decrypting.</li>
+    </ol>
+
+    <h2>CLI Structure</h2>
+    <pre><code>#[derive(Parser)]
+#[command(author, version, about = "AES-256-GCM file encrypter/decrypter")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Encrypt(FileOpts),
+    Decrypt(FileOpts),
+}
+
+#[derive(Args)]
+struct FileOpts {
+    #[arg(short, long)]
+    path: PathBuf,
+
+    #[arg(short, long, action = ArgAction::SetTrue)]
+    force: bool,
+}
+</code></pre>
+    <p>
+        This uses <strong>Clap</strong> to parse command-line arguments.  
+        <strong>Subcommands:</strong>
+    </p>
+    <ul>
+        <li><code>encrypt</code>: Encrypt the given file in-place.</li>
+        <li><code>decrypt</code>: Decrypt the given file in-place.</li>
+    </ul>
+    <p><strong>Options:</strong></p>
+    <ul>
+        <li><code>--path</code>: Path of the file to encrypt or decrypt (required).</li>
+        <li><code>--force</code>: Overwrite the file even if it looks already encrypted or decrypted.</li>
+    </ul>
+
+    <h2>Main Flow</h2>
+    <h3>1. Parse CLI</h3>
+    <pre><code>let cli = Cli::parse();
+</code></pre>
+    <p>Reads user input (e.g. <code>mytool encrypt --path file.txt</code> or <code>mytool decrypt --path file.txt</code>).</p>
+
+    <h3>2. Decode the Base64 Key</h3>
+    <pre><code>let key_bytes = parse_base64_key(BASE64_KEY)?;
+let aes_key = Key::<Aes256Gcm>::from_slice(&key_bytes);
+</code></pre>
+    <p>
+        <code>parse_base64_key</code> ensures the decoded result is exactly 32 bytes. AES-256 requires a 256-bit key.
+    </p>
+
+    <h3>3. Dispatch to Encrypt/Decrypt</h3>
+    <pre><code>match cli.command {
+    Commands::Encrypt(opts) => encrypt_file_in_place(&opts.path, aes_key, opts.force)?,
+    Commands::Decrypt(opts) => decrypt_file_in_place(&opts.path, aes_key, opts.force)?,
+}
+</code></pre>
+    <p>Depending on the subcommand, the code calls the relevant function.</p>
+
+    <h2>Encryption Flow</h2>
+    <h3>Function Signature</h3>
+    <pre><code>fn encrypt_file_in_place(path: &Path, key: &Key&lt;Aes256Gcm&gt;, force: bool) -&gt; Result&lt;()&gt;
+</code></pre>
+    <ol>
+        <li><strong>Read the entire file</strong> into memory:
+            <pre><code>let mut plaintext = read_entire_file(path)?;
+</code></pre>
+        </li>
+        <li><strong>Check if file is already encrypted</strong>:
+            <pre><code>if !force &amp;&amp; file_looks_encrypted(&plaintext) {
+    bail!("Refusing to encrypt an already-encrypted file ...");
+}
+</code></pre>
+        </li>
+        <li><strong>Generate a nonce</strong> (12 bytes for AES-GCM):
+            <pre><code>let mut nonce_bytes = [0u8; 12];
+OsRng.fill_bytes(&mut nonce_bytes);
+let nonce = Nonce::from_slice(&nonce_bytes);
+</code></pre>
+        </li>
+        <li><strong>Encrypt</strong> with <code>aes-gcm</code>:
+            <pre><code>let cipher = Aes256Gcm::new(key);
+let ciphertext = cipher
+    .encrypt(nonce, Payload { msg: &plaintext, aad: AAD_DATA })?;
+</code></pre>
+            <p>The GCM tag is appended automatically to the ciphertext.</p>
+        </li>
+        <li><strong>Construct the final data</strong> = [MAGIC_BYTES + nonce + ciphertext(+GCM tag)]:
+            <pre><code>let mut final_data = Vec::with_capacity(
+    MAGIC_BYTES.len() + nonce_bytes.len() + ciphertext.len()
+);
+final_data.extend_from_slice(MAGIC_BYTES);
+final_data.extend_from_slice(&nonce_bytes);
+final_data.extend_from_slice(&ciphertext);
+</code></pre>
+        </li>
+        <li><strong>Zeroize the plaintext</strong>:
+            <pre><code>plaintext.zeroize();
+</code></pre>
+            <p>This overwrites the plaintext in memory with zeros.</p>
+        </li>
+        <li><strong>Atomically overwrite the original file</strong>:
+            <pre><code>atomic_overwrite_file(path, &final_data)?;
+</code></pre>
+            <p>Writes to a temporary file, then renames over the original file.</p>
+        </li>
+    </ol>
+
+    <h2>Decryption Flow</h2>
+    <h3>Function Signature</h3>
+    <pre><code>fn decrypt_file_in_place(path: &Path, key: &Key&lt;Aes256Gcm&gt;, force: bool) -&gt; Result&lt;()&gt;
+</code></pre>
+    <ol>
+        <li><strong>Read entire file</strong>:
+            <pre><code>let encrypted_data = read_entire_file(path)?;
+</code></pre>
+        </li>
+        <li><strong>Check if file does NOT look encrypted</strong> (unless <code>--force</code> is used):
+            <pre><code>if !force &amp;&amp; !file_looks_encrypted(&encrypted_data) {
+    bail!("Refusing to decrypt a file that doesn't look encrypted...");
+}
+</code></pre>
+        </li>
+        <li><strong>Check minimum file size</strong> (MAGIC_BYTES + 12-byte nonce + 16-byte tag):
+            <pre><code>if encrypted_data.len() &lt; MAGIC_BYTES.len() + 12 + 16 {
+    bail!("File too small to contain magic + nonce + GCM tag");
+}
+</code></pre>
+        </li>
+        <li><strong>Extract the magic bytes</strong>:
+            <pre><code>let magic_len = MAGIC_BYTES.len();
+let (magic_part, rest) = encrypted_data.split_at(magic_len);
+if magic_part != MAGIC_BYTES {
+    bail!("Invalid magic bytes, not an AES-GCM file or corrupted");
+}
+</code></pre>
+        </li>
+        <li><strong>Extract the nonce (12 bytes)</strong> and ciphertext:
+            <pre><code>let (nonce_bytes, ciphertext_with_tag) = rest.split_at(12);
+let nonce = Nonce::from_slice(nonce_bytes);
+</code></pre>
+        </li>
+        <li><strong>Decrypt</strong>:
+            <pre><code>let cipher = Aes256Gcm::new(key);
+let plaintext = cipher
+    .decrypt(nonce, Payload { msg: ciphertext_with_tag, aad: AAD_DATA })?;
+</code></pre>
+        </li>
+        <li><strong>Overwrite original file</strong> with recovered plaintext:
+            <pre><code>atomic_overwrite_file(path, &plaintext)?;
+</code></pre>
+        </li>
+    </ol>
+
+    <h2>Utility Functions</h2>
+
+    <h3><code>parse_base64_key</code></h3>
+    <pre><code>fn parse_base64_key(encoded: &str) -&gt; Result&lt;[u8; 32]&gt; {
+    let decoded = STANDARD.decode(encoded.trim())?;
+    if decoded.len() != 32 {
+        bail!("Decoded key must be exactly 32 bytes");
+    }
+    let mut out = [0u8; 32];
+    out.copy_from_slice(&decoded);
+    Ok(out)
+}
+</code></pre>
+
+    <h3><code>file_looks_encrypted</code></h3>
+    <pre><code>fn file_looks_encrypted(file_data: &[u8]) -&gt; bool {
+    file_data.len() &gt;= MAGIC_BYTES.len() &amp;&amp; file_data.starts_with(MAGIC_BYTES)
+}
+</code></pre>
+
+    <h3><code>read_entire_file</code></h3>
+    <pre><code>fn read_entire_file(path: &Path) -&gt; Result&lt;Vec&lt;u8&gt;&gt; {
+    let mut file = File::open(path)?;
+    let metadata = file.metadata()?;
+    let mut buffer = Vec::with_capacity(metadata.len() as usize);
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+</code></pre>
+
+    <h3><code>atomic_overwrite_file</code></h3>
+    <pre><code>fn atomic_overwrite_file(path: &Path, data: &[u8]) -&gt; Result&lt;()&gt; {
+    let parent_dir = path
+        .parent()
+        .ok_or_else(|| anyhow!("Cannot find parent directory of {:?}", path))?;
+    
+    // Create a temporary file
+    let tmp_path = parent_dir.join(format!(".{}.tmp", Uuid::new_v4()));
+    {
+        let mut tmp_file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)?;
+        tmp_file.write_all(data)?;
+        tmp_file.sync_all()?;
+    }
+
+    // Rename the temp file over the original
+    fs::rename(&tmp_path, path)?;
+
+    // Sync directory for metadata durability (best effort)
+    if let Ok(dir_file) = File::open(parent_dir) {
+        let _ = dir_file.sync_all();
+    }
+
+    Ok(())
+}
+</code></pre>
+
+    <h2>Takeaways and Notes</h2>
+    <ul>
+        <li><strong>AES-256-GCM</strong> is a widely recommended authenticated encryption algorithm.</li>
+        <li><strong>Secure Key Management</strong>:
+            <ul>
+                <li>In real-world applications, you do <em>not</em> want to hard-code keys.</li>
+                <li>Keys might be provided via environment variables, secure config files, or a key vault.</li>
+            </ul>
+        </li>
+        <li><strong><code>AAD_DATA</code> Consistency</strong>: When encrypting and decrypting, the same <code>AAD_DATA</code> must be used or decryption will fail.</li>
+        <li><strong>Atomic Writes</strong>: This approach prevents partially overwritten files if something interrupts the process.</li>
+        <li><strong><code>zeroize</code></strong> usage: Good practice for clearing plaintext from memory after use.</li>
+        <li><strong>Error Handling</strong>: Uses <code>anyhow</code> to wrap errors with contextual messages for easier debugging.</li>
+    </ul>
+
+    <h2>Final Thoughts</h2>
+    <p>
+        This code is a succinct, clean example of how to perform file-based AES-256-GCM
+        encryption and decryption with authenticated data. If you plan to use it in
+        production, remember to manage your keys safely rather than embedding them in source code.
+    </p>
+</body>
+</html>

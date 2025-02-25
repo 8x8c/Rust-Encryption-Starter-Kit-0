@@ -1,0 +1,13 @@
+[package]
+name = "ezcrypt2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+aes-gcm = "0.10"
+rand = "0.8"
+clap = { version = "4.2", features = ["derive"] }
+base64 = "0.21"
+uuid = { version = "1.4", features = ["v4"] }
+zeroize = "1.5"

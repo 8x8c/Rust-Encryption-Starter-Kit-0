@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>XOR + HMAC Encryption App Explanation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      line-height: 1.6;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    .code-block {
+      background: #f9f9f9;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      overflow-x: auto;
+    }
+    h1, h2 {
+      margin-top: 1.5rem;
+    }
+    ul {
+      margin-left: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>XOR + HMAC Encryption App</h1>
+
+<p>This application demonstrates a simple mechanism to <strong>encrypt</strong> a file with XOR and verify its <strong>integrity</strong> with an HMAC (Hash-based Message Authentication Code). Though real-world encryption typically uses more robust ciphers like AES, this example shows the core concepts of encryption, integrity, and key management.</p>
+
+<hr>
+
+<h2>1. How It Works</h2>
+<p>The app operates with <em>two subcommands</em>: <code>e filename</code> (encrypt) or <code>d filename</code> (decrypt).</p>
+
+<ol>
+  <li><strong>XOR Encryption</strong>: The app reads the file’s contents and XORs each byte with a key from <code>xor.key</code>. XOR is <em>not secure</em> if the key is reused or guessable, but it’s simple to illustrate.</li>
+  <li><strong>HMAC for Integrity</strong>: The app computes an HMAC (using <code>mac.key</code>) over the file data to detect tampering. 
+    <ul>
+      <li>The HMAC is saved in a separate <code>.mac</code> file, e.g., <code>myfile.txt.mac</code>.</li>
+      <li>Whenever you decrypt, the app recomputes the HMAC over the decrypted data and compares it with the stored value. If they differ, it indicates the file may have been corrupted or tampered with.</li>
+    </ul>
+  </li>
+  <li><strong>Automatic Verification</strong>: After encrypting or decrypting, the app automatically verifies the output to ensure the operation succeeded and the data is authentic.</li>
+</ol>
+
+<p><strong>Result:</strong> You can tell if the file has been <em>inadvertently corrupted</em> or <em>maliciously modified</em>—the HMAC check will fail, and the program will report an error.</p>
+
+<hr>
+
+<h2>2. Required Files</h2>
+<ul>
+  <li><code>xor.key</code>: Must be at least as large as any file you plan to encrypt. XOR is a one-to-one operation with each byte of the file.</li>
+  <li><code>mac.key</code>: Typically 32 bytes for HMAC-SHA256. Should be <em>secret</em> if you need true tamper protection.</li>
+</ul>
+<p>When encrypting with <code>e file.txt</code>, a <code>file.txt.mac</code> file is generated (the HMAC). When decrypting with <code>d file.txt</code>, the app reads <code>file.txt</code> and <code>file.txt.mac</code> to verify integrity.</p>
+
+<hr>
+
+<h2>3. Key Points</h2>
+<ul>
+  <li><strong>Symmetric XOR Encryption</strong>: Encryption and decryption both use the same <code>xor.key</code> to XOR the file.</li>
+  <li><strong>Integrity Verification</strong>: By calculating an HMAC (using <code>mac.key</code>), we detect if the file was altered. If the HMAC check fails, the program refuses to produce decrypted data.</li>
+  <li><strong>Automatic Key Generation</strong> (Optional): If configured, the app can create a <code>mac.key</code> on the fly if it doesn’t exist, but remember that <em>for real security</em> the key must remain private.</li>
+  <li><strong>Data Safety</strong>: The app writes results to a temporary file first, then renames it to avoid partially writing a corrupted file.</li>
+  <li><strong>Logging</strong>: Errors are logged to <code>error.txt</code> so you can see what went wrong (key file missing, HMAC failure, etc.).</li>
+</ul>
+
+<hr>
+
+<h2>4. Example Workflow</h2>
+
+<div class="code-block">
+<code>
+# Generate or obtain your keys (in the same directory):
+# xor.key -- large random bytes
+# mac.key -- 32 random bytes
+
+# 1. Encrypt a file (myfile.txt)
+myapp.exe e myfile.txt
+# => Overwrites myfile.txt with XOR-encrypted data
+# => Creates myfile.txt.mac with HMAC for integrity
+
+# 2. Decrypt a file
+myapp.exe d myfile.txt
+# => Restores original content in myfile.txt
+# => Verifies the HMAC from myfile.txt.mac
+</code>
+</div>
+
+<p>During both encryption and decryption, if the integrity check fails, the operation stops and logs an error.</p>
+
+<hr>
+
+<h2>5. Security Caveat</h2>
+<p>This demo uses <strong>XOR encryption</strong>, which is generally insecure unless it’s a <em>one-time pad</em> scenario (the XOR key is as large as the file, used only once, and kept secret). For serious protection, use an established cipher (AES, ChaCha20, etc.). However, the <strong>HMAC</strong> aspect is still valid for verifying file integrity regardless of the underlying encryption.</p>
+
+<hr>
+
+<h2>6. Contact and Further Reading</h2>
+<p>If you have questions about real cryptographic solutions, consult resources on <strong>AES-GCM</strong> or <strong>AES-SIV</strong> for authenticated encryption. The principle of <em>encrypt + authenticate</em> remains the same, but with more secure underlying algorithms than XOR.</p>
+
+</body>
+</html>

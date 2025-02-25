@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Why Use --force?</title>
+</head>
+<body>
+    <h1>Why Use <code>--force</code>?</h1>
+    <p>
+        In many encryption tools, including this one, the <code>--force</code> option
+        serves as a bypass for the tool’s built-in checks that a file is (or isn’t)
+        already encrypted. Normally, these checks prevent you from accidentally
+        encrypting an already-encrypted file or decrypting a file that isn’t encrypted.
+    </p>
+
+    <p>
+        By default, if the tool detects that a file looks encrypted (i.e., it starts
+        with the <code>MAGIC_BYTES</code> signature <code>AGCM</code>), it refuses
+        to encrypt it again. Likewise, if the file <em>doesn’t</em> start with
+        <code>AGCM</code>, it refuses to decrypt it. This is meant to protect users
+        from corrupting their files by applying the wrong operation.
+    </p>
+
+    <h2>So, is <code>--force</code> useful?</h2>
+    <p>
+        In normal circumstances, you typically wouldn’t need <code>--force</code>.
+        If your file is already encrypted, you can just decrypt it. If your file is
+        already plaintext, you can just encrypt it. That said, the <code>--force</code>
+        option can be useful in special or “edge case” scenarios:
+    </p>
+    <ul>
+        <li>
+            <strong>Double encryption:</strong> You <em>could</em> use <code>--force</code>
+            to encrypt a file that’s already encrypted (i.e., “encrypt it twice”).
+            This is not usually recommended, as it complicates decryption; you’d have
+            to decrypt once, then decrypt again. But it’s not impossible.
+        </li>
+        <li>
+            <strong>Files with missing or incorrect “magic bytes”:</strong> Perhaps you
+            know that a file was encrypted with this tool, but for whatever reason,
+            its <code>AGCM</code> signature got truncated or changed. In that case,
+            the tool would refuse to decrypt it because it doesn’t <em>look</em>
+            encrypted. You could <code>--force</code> it, though this may or may
+            not succeed depending on what actually changed in the file.
+        </li>
+        <li>
+            <strong>Experimental use or partial data recovery:</strong> In rare cases
+            (like data recovery scenarios), you might forcibly apply encryption or
+            decryption logic to a file if you know more about its contents than the
+            tool can detect automatically.
+        </li>
+    </ul>
+
+    <h2>Would it “never decrypt or encrypt properly”?</h2>
+    <p>
+        If you use <code>--force</code> to do something unintended (like encrypting a file
+        that’s already valid ciphertext), then yes, you can end up with gibberish that
+        you can’t properly decrypt in one pass. In effect, you’d have a “double-encrypted”
+        file. To decrypt that file, you would need to run the decryption operation twice.
+    </p>
+
+    <p>
+        So, <strong>it’s not that <code>--force</code> is useless</strong>, it’s simply
+        there to override safety checks when you really need to. For most users, you
+        typically wouldn’t use it unless you have a special reason.
+    </p>
+
+    <hr>
+    <p><em>In short, <code>--force</code> is an advanced option that disables the
+    “already-encrypted/already-decrypted” check. It’s mostly there to handle
+    edge cases or to deliberately override the default safety mechanism.</em></p>
+</body>
+</html>

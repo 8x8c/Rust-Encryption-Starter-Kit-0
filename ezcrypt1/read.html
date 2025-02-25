@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AES-256-GCM In-Place Encryption/Decryption Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+      color: #333;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #00509e;
+    }
+    code {
+      background-color: #f4f4f4;
+      padding: 0.2rem 0.3rem;
+      border-radius: 3px;
+      font-family: Consolas, Monaco, Courier New, monospace;
+    }
+    pre {
+      background-color: #f9f9f9;
+      padding: 0.8rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .note {
+      background: #fff3cd;
+      border-left: 5px solid #ffeeba;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .warning {
+      background: #f8d7da;
+      border-left: 5px solid #f5c6cb;
+      padding: 1rem;
+      margin: 1rem 0;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+
+<h1>AES-256-GCM In-Place File Encryption/Decryption (ezcrypt2)</h1>
+
+<p>
+  This application provides a command-line tool for encrypting and decrypting files
+  in place using <strong>AES-256-GCM</strong>. It ensures atomic overwrites by first
+  writing to a temporary file, then renaming it over the original to minimize the risk
+  of partially written files in case of crashes or unexpected interruptions.
+</p>
+
+<div class="warning">
+  <strong>Warning:</strong> This demo uses a single hard-coded key, which is not recommended 
+  for production environments. The <code>BASE64_KEY</code> in the code should be replaced 
+  with a secure method of key management (e.g., a secure vault, environment variables, 
+  or user input plus a key derivation function).
+</div>
+
+<h2>Features</h2>
+<ul>
+  <li>Uses AES-256-GCM for authenticated encryption</li>
+  <li>Atomic overwrite of files to reduce corruption or partial writes</li>
+  <li>Detects if a file is already encrypted with magic bytes (<code>AGCM</code>)</li>
+  <li>Allows a <code>--force</code> flag to override checks</li>
+  <li>Securely zeroizes plaintext data in memory after encryption</li>
+</ul>
+
+<h2>Why AES-256-GCM?</h2>
+<p>
+  AES-256-GCM is a widely used, industry-standard authenticated encryption scheme. 
+  It ensures both confidentiality (nobody can read the encrypted data without the key) 
+  and integrity (any tampering with the ciphertext is detected upon decryption).
+</p>
+
+<h2>How It Works</h2>
+<ol>
+  <li>The app reads the entire file into memory.</li>
+  <li>It checks if the file is likely already encrypted by looking for the
+      <code>AGCM</code> magic bytes.</li>
+  <li>If the file is being encrypted, it prepends <code>AGCM</code>, generates a
+      12-byte nonce, encrypts the data, then writes it out to a temporary file.</li>
+  <li>After writing, it renames (moves) the temporary file over the original atomically.</li>
+  <li>When decrypting, it reads the file, checks the magic bytes, and decrypts in memory.
+      The plaintext is then written to a temporary file and renamed over the original.</li>
+  <li>In both cases, the final step is a best-effort directory sync for metadata durability.</li>
+</ol>
+
+<div class="note">
+  <strong>Note:</strong> This approach loads the entire file into memory at once. If you 
+  plan to encrypt/decrypt extremely large files (multi-GB), consider a streaming approach.
+</div>
+
+<h2>Requirements</h2>
+<ul>
+  <li>Rust and Cargo (1.60+ recommended)</li>
+  <li>All dependencies specified in <code>Cargo.toml</code> (e.g., <code>aes-gcm</code>, 
+      <code>rand</code>, <code>base64</code>, <code>anyhow</code>, <code>zeroize</code>, etc.)</li>
+</ul>
+
+<h2>How to Build</h2>
+<pre><code>git clone https://github.com/yourusername/ezcrypt2
+cd ezcrypt2
+cargo build --release
+</code></pre>
+<p>
+  The resulting binary will be in <code>target/release/ezcrypt2</code> (Unix) or
+  <code>target\release\ezcrypt2.exe</code> (Windows).
+</p>
+
+<h2>How to Use</h2>
+
+<h3>Encrypting a File</h3>
+<p>
+  To encrypt <code>mydata.txt</code>:
+</p>
+<pre><code>./ezcrypt2 encrypt --path mydata.txt
+</code></pre>
+<p>
+  This will overwrite <code>mydata.txt</code> with its encrypted contents.
+  If the file already appears encrypted, the app will refuse to encrypt again
+  unless you add <code>--force</code>.
+</p>
+
+<h3>Decrypting a File</h3>
+<p>
+  To decrypt <code>mydata.txt</code> (assuming it was previously encrypted):
+</p>
+<pre><code>./ezcrypt2 decrypt --path mydata.txt
+</code></pre>
+<p>
+  This will overwrite <code>mydata.txt</code> with the decrypted contents.
+</p>
+<p>
+  If the file does not look encrypted (i.e., is missing the <code>AGCM</code>
+  magic bytes), the app will refuse to decrypt unless you use <code>--force</code>.
+</p>
+
+<h2>Force-Overriding Checks</h2>
+<p>
+  If you really want to encrypt or decrypt a file that does not pass the 
+  “looks-encrypted”/”not-encrypted” test, add <code>--force</code>:
+</p>
+<pre><code>./ezcrypt2 encrypt --path suspicious_file.bin --force
+</code></pre>
+
+<h2>Code Overview</h2>
+<ul>
+  <li><code>main.rs</code>: Contains the core logic and command-line interface.</li>
+  <li><code>parse_base64_key()</code>: Decodes a 32-byte encryption key from a hard-coded
+      Base64 string.</li>
+  <li><code>encrypt_file_in_place()</code>: Encrypts the file and atomically overwrites it.</li>
+  <li><code>decrypt_file_in_place()</code>: Decrypts the file and atomically overwrites it.</li>
+  <li><code>file_looks_encrypted()</code>: Checks if the first bytes match the <code>AGCM</code> marker.</li>
+  <li><code>atomic_overwrite_file()</code>: Safely writes to a temporary file, 
+      then renames over the original.</li>
+</ul>
+
+<h2>Security Considerations</h2>
+<div class="note">
+  <ul>
+    <li>Currently uses a single, hard-coded 32-byte key (<code>BASE64_KEY</code>). In real-world 
+        production, the key should be loaded from a secure source (e.g., an environment variable, 
+        a password-protected vault, or user input + KDF). 
+    </li>
+    <li>Uses <code>zeroize</code> to ensure plaintext is wiped from memory after encryption.</li>
+    <li>Generates a 12-byte random nonce for each file. For large-scale usage, consider tracking 
+        nonce uniqueness more systematically to avoid any unlikely (but possible) collisions.</li>
+    <li>This approach reads the entire file into memory. This is simpler but might not be ideal 
+        for extremely large files.</li>
+    <li>On some platforms (e.g., Windows), the directory sync behavior might be a no-op or 
+        partial. However, the rename-based atomic overwrite will still help prevent partial file writes.</li>
+  </ul>
+</div>
+
+<h2>License</h2>
+<p>
+  This project is licensed under the MIT License (or whichever license you choose).
+  See <code>LICENSE</code> for details.
+</p>
+
+<hr />
+<p>
+  <em>Thank you for using this AES-256-GCM file encryption/decryption tool!
+  For questions or bug reports, please open an issue on the repository or 
+  contact the project maintainers.</em>
+</p>
+
+</body>
+</html>

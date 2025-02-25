@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ezcrypt - README</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.6;
+    }
+    code, pre {
+      font-family: "Source Code Pro", monospace;
+      background-color: #f4f4f4;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    h1, h2, h3 {
+      margin-top: 1.4em;
+      margin-bottom: 0.6em;
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-top: 0;
+    }
+    p {
+      margin-bottom: 0.8em;
+    }
+    ul {
+      margin-left: 2em;
+      margin-bottom: 1em;
+    }
+    li {
+      margin-bottom: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>ezcrypt - A Simple Rust CLI Tool for Automatic File Encryption/Decryption</h1>
+
+<p>
+  <strong>ezcrypt</strong> is a command‐line utility that encrypts or decrypts files based on whether they
+  are already encrypted or not. It uses AES‐256‐GCM for authenticated encryption, Argon2 for key derivation,
+  and overwrites files atomically (to avoid corruption on unexpected termination).
+</p>
+
+<h2>Features</h2>
+<ul>
+  <li><strong>Automatic Mode:</strong> The CLI detects whether a file is already encrypted by checking a
+      <code>MAGIC_HEADER</code> (e.g., <code>ENCFILE</code>). If present, the file is decrypted; if not, 
+      it is encrypted.</li>
+  <li><strong>AES-256-GCM Encryption:</strong> Provides authenticated encryption and integrity checks.</li>
+  <li><strong>Argon2-based Key Derivation:</strong> The file uses a random salt per file (<em>file_salt</em>)
+      plus compile‐time constants (<em>STATIC_SALT</em>, <em>PEPPER</em>) to derive a unique 256‐bit key.</li>
+  <li><strong>Atomic Overwrites:</strong> Data is always written to a <code>filename.tmp</code> before being 
+      renamed. This helps prevent partial writes from corrupting the original file if the process is interrupted.</li>
+  <li><strong>No External Paths:</strong> The tool only operates on files in the current directory
+      (no subdirectories allowed).</li>
+</ul>
+
+<h2>How It Works</h2>
+<ol>
+  <li>
+    <strong>User Input:</strong> The app prompts the user for a file name that must reside in the current directory.
+  </li>
+  <li>
+    <strong>Check Encryption State:</strong> 
+    <ul>
+      <li>The tool checks the first few bytes of the file for a magic header (e.g., <code>ENCFILE</code>).</li>
+      <li>If the header is found, the file is treated as encrypted; otherwise, it is assumed to be unencrypted.</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Encrypt or Decrypt:</strong>
+    <ul>
+      <li><em>Encrypt:</em> For unencrypted files, a random 16‐byte salt is generated. The tool derives a 
+      32‐byte key by combining that salt with the compile‐time pepper and static salt, hashing with Argon2, 
+      and passing the result through BLAKE3. Then it generates a 12‐byte nonce, encrypts the file content 
+      under AES‐256‐GCM, and writes out <code>MAGIC_HEADER | file_salt | nonce | ciphertext</code>.</li>
+      <li><em>Decrypt:</em> For encrypted files, the tool parses the existing header, extracts the salt, 
+      nonce, and ciphertext, re‐derives the key, and decrypts. The output is the original file data, 
+      which replaces the existing file after a successful decryption.</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Atomic File Overwrite:</strong>
+    <ul>
+      <li>All writes happen into a temporary file (<code>filename.tmp</code>). Once the operation is successful 
+      and flushed, it gets renamed over the original file.</li>
+      <li>This prevents data corruption if the program or the system crashes mid‐operation.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>Installation &amp; Usage</h2>
+<ol>
+  <li><strong>Install Rust (stable or later).</strong> Visit 
+      <a href="https://www.rust-lang.org/tools/install" target="_blank">Rust’s official site</a> for installation instructions.</li>
+  <li><strong>Clone/Download this repository, then build:</strong>
+    <pre><code>cd ezcrypt
+cargo build --release
+</code></pre>
+  </li>
+  <li><strong>Run the binary:</strong>
+    <pre><code>./target/release/ezcrypt
+</code></pre>
+    <ul>
+      <li>The tool will ask for a filename in the current directory.</li>
+      <li>If the file isn’t encrypted, it will create an encrypted version, overwriting the original.</li>
+      <li>If the file is encrypted (as detected by the <code>MAGIC_HEADER</code>), it will decrypt in place.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>Security &amp; Caveats</h2>
+<ul>
+  <li><strong>In‐Memory Reading:</strong> Currently, the entire file contents are read into memory before 
+      encryption/decryption. If you have large files, this may be an issue. Consider a streaming approach 
+      if file sizes are huge.</li>
+  <li><strong>Compile‐time Secrets:</strong> The <code>PEPPER</code> and <code>STATIC_SALT</code> are 
+      baked into the binary. Real‐world usage would typically prompt for a password or load secrets from 
+      a secure location.</li>
+  <li><strong>Keys Not Stored:</strong> The derived key is ephemeral and never stored. This means that 
+      if you lose your compile‐time secrets (and the salt embedded in the file), you won't be able to 
+      decrypt.</li>
+  <li><strong>No Subdirectory Support:</strong> This tool purposely limits files to the current working directory,
+      ensuring no accidental encryption or decryption of system files outside the folder. You can remove 
+      this limitation if you desire, but be cautious about the security implications.</li>
+  <li><strong>Production Readiness:</strong> This is primarily a demonstration of Rust encryption techniques, 
+      Argon2 key derivation, and safe atomic overwrites. For production, you’d likely expand on logging, 
+      error handling, secure key management, tests, and possible hardware key storage (e.g., HSM).</li>
+</ul>
+
+<h2>Technical Overview of Key Derivation</h2>
+<ol>
+  <li>Each file has its own 16‐byte <em>file_salt</em> (randomly generated).</li>
+  <li>The tool also has compile‐time constants: <em>STATIC_SALT</em> and <em>PEPPER</em>.</li>
+  <li>The <em>file_salt</em> is treated as the “password” in Argon2, and the combined 
+      <em>STATIC_SALT + PEPPER</em> is treated as the “Argon2 salt.”</li>
+  <li>Argon2 returns a hash string, which we then pass through BLAKE3 to yield a stable 32‐byte 
+      key (used for AES‐256‐GCM).</li>
+</ol>
+
+<h2>Dependencies</h2>
+<ul>
+  <li><strong>aes-gcm:</strong> <code>0.10</code> - Provides AES‐GCM authenticated encryption API.</li>
+  <li><strong>argon2:</strong> <code>0.4</code> - Used for key derivation.</li>
+  <li><strong>blake3:</strong> <code>1.3</code> - Compresses the Argon2 hash string into a stable 32‐byte output.</li>
+  <li><strong>rand:</strong> <code>0.8</code> - Generates random salts and nonces (via <code>OsRng</code>).</li>
+  <li><strong>anyhow:</strong> <code>1.0</code> - Simplifies error handling by providing <code>anyhow::Error</code>.</li>
+</ul>
+
+<h2>Example Code Snippet</h2>
+<pre><code>let key = derive_key(&file_salt)?;
+let cipher = Aes256Gcm::new(&key);
+
+let nonce = Nonce::from_slice(&nonce_bytes);
+let ciphertext = cipher
+    .encrypt(nonce, original_data.as_ref())
+    .map_err(|e| anyhow!("AES-GCM encryption failed: {e}"))?;
+</code></pre>
+
+<h2>License &amp; Contributing</h2>
+<p>
+  This tool is a reference example and is provided as‐is. If you spot bugs or want 
+  to improve, feel free to open issues or send pull requests.
+</p>
+
+</body>
+</html>
