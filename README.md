@@ -2,6 +2,18 @@
 
 ## A few simple encryption and keygen apps made with Rust.
 
+
+
+![3](https://github.com/user-attachments/assets/6ebc1360-bc2a-453b-8040-8f890f0c072a)
+
+
+
+
+
+
+
+
+
 Rust is an awesome lang to make simple, reliable, powerful encryption apps. Each folder here is its own app. Don't know how to code in Rust? NO PROBLEM! Just have chatgpt or similar ai code your Rust  apps for you! Weeeeeeee! :)
 
 
