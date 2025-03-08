@@ -3,7 +3,6 @@
 ## A few simple encryption and keygen apps made with Rust.
 
 
-Most of the apps here have 2 files- cargo.toml and main.rs and that is the complete codebase. Encryption is not rocket science. It is a simple file operation. It should not take 300 rust files to compile to an app that simply encrypts or decrypts a file. Moreover, other apps that tout reliability and vetted encryption would be MORE reliable if they only had 2 files- cargo.toml and main.rs to audit. 
 
 
 ![3](https://github.com/user-attachments/assets/6ebc1360-bc2a-453b-8040-8f890f0c072a)
