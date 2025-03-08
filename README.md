@@ -4,7 +4,7 @@
 
 
 
-There are numerous Rust encryption apps out there. Most have lots of files, lots of directories. I think that is silly - it is harder to strictly audit and monitor 300 files. Most of the apps here have 2 files- cargo.toml and main.rs and that is the complete codebase. Encryption is not rocket science. It is a simple file operation. 
+There are numerous Rust encryption apps out there. Most have lots of files, lots of directories. I think that is silly - it is harder to strictly audit and monitor 300 files. Most of the apps here have 2 files- cargo.toml and main.rs and that is the complete codebase. Encryption is not rocket science. It is a simple file operation. It should not take 300 rust files to compile to an app that simply encrypts or decrypts a file. 
 
 
 ![3](https://github.com/user-attachments/assets/6ebc1360-bc2a-453b-8040-8f890f0c072a)
