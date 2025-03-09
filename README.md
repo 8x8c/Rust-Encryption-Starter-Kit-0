@@ -2,7 +2,6 @@
 
 ## A few simple encryption and keygen apps made with Rust.
 
-This is archived, just to keep it all intact at a simple level. I will be taking some of the apps in here and focusing on changes in order to make more refined apps.
 
 
 ![3](https://github.com/user-attachments/assets/6ebc1360-bc2a-453b-8040-8f890f0c072a)
