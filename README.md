@@ -10,8 +10,7 @@
 
 
 
-
-If you are new to rust/encryption, this is the ultimate starter kit. The apps here are simple- just cargo.toml and main.rs compile to the exexcutable. Feed main.rs and cargo toml to ai, it will tell you what each app does. There is a wide variety of encryption/keygen apps here. With creative ideas you can change things around. 
+The apps here are simple- just cargo.toml and main.rs compile to the exexcutable. Feed main.rs and cargo toml to ai, it will tell you what each app does. There is a wide variety of encryption/keygen apps here. With creative ideas you can change things around. 
 
 
 Rust is an awesome lang to make simple, reliable, powerful encryption apps. Each folder here is its own app. Don't know how to code in Rust? NO PROBLEM! Just have chatgpt or similar ai code your Rust  apps for you! Weeeeeeee! :)
