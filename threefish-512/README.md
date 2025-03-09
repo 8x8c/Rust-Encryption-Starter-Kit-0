@@ -5,6 +5,7 @@ A simple command-line application for encrypting and decrypting files using the 
 
 # Commands
 to encrypt --  ./three  plain.txt cypher.txt
+
 to decrypt -- ./three  cypher.txt decrypted.txt 
 
 that is all the commands- this is meant to be simple. 
