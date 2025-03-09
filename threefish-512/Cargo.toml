@@ -1,0 +1,11 @@
+[package]
+name = "three"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "4.2.3"
+anyhow = "1.0"
+threefish = "0.5"
+cipher = "0.4"   # for KeyInit, BlockEncryptMut, etc.
+
