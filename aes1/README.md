@@ -3,7 +3,7 @@ Designed to be incredibly user friendly.
 
 USAGE:  
 
-aes [FLAGS] <input> <output>
+aes [FLAGS] input.file  output.file 
 
 ./aes -e a.txt b.txt    will encrypt a.txt to file called b.txt
 
