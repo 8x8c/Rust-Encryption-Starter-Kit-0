@@ -10,12 +10,12 @@ To use the application, you execute it via the command line:
 
 ### Encryption
 ```bash
-./stdotp E <input_file> <output_file>
+./secure E <input_file> <output_file>
 ```
 
 ### Decryption
 ```bash
-./stdotp D <encrypted_file> <output_file>
+./secure D <encrypted_file> <output_file>
 ```
 
 ### Requirements
