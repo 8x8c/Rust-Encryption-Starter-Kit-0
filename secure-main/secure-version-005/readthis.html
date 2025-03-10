@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure XOR Encryption v5 - README</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #444;
+    }
+    pre {
+      background: #eee;
+      border: 1px solid #ccc;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+    }
+    ul {
+      margin-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Secure XOR Encryption v5</h1>
+  <h2>Overview</h2>
+  <p>
+    Secure XOR Encryption v5 is a custom encryption tool written in Rust. This version builds on previous iterations by enforcing fixed 32-byte keys and supporting two distinct operational modes:
+  </p>
+  <ul>
+    <li>
+      <strong>File Mode:</strong> Keys are read from physical files (<code>1.key</code> for the encryption key and <code>2.key</code> for the MAC key). Both must be exactly 32 bytes.
+    </li>
+    <li>
+      <strong>Password Mode:</strong> A user-provided password is used to deterministically derive the keys via Argon2. In this mode, two random salts (16 bytes each) are generated and stored within the encrypted file header so that the keys can be re-derived during decryption.
+    </li>
+  </ul>
+  
+  <h2>Key Features</h2>
+  <ul>
+    <li><strong>Dual Mode Operation:</strong>  
+      <ul>
+        <li>
+          <strong>File Mode:</strong> No password is given. The app reads 32-byte keys from <code>1.key</code> and <code>2.key</code>.
+        </li>
+        <li>
+          <strong>Password Mode:</strong> A password is provided. The app uses Argon2 with two random salts to derive a 32-byte encryption key and a 32-byte MAC key.
+        </li>
+      </ul>
+    </li>
+    <li><strong>Robust Keystream Generation:</strong>  
+      A counter‑mode HMAC-SHA256 construction is used to generate a pseudorandom keystream that is XOR‑ed with the plaintext.
+    </li>
+    <li><strong>Encrypt‑then‑MAC Authentication:</strong>  
+      The app computes an HMAC-SHA256 over the nonce and ciphertext using the MAC key, ensuring data integrity and authenticity.
+    </li>
+    <li><strong>Argon2 Key Derivation:</strong>  
+      In password mode, Argon2 is used for key derivation to resist dictionary attacks, making the password‑based approach more production‑ready.
+    </li>
+    <li><strong>File Format Flexibility:</strong>  
+      The encrypted file includes a header byte that indicates the mode used, ensuring that the decryption process can correctly interpret the file structure.
+    </li>
+  </ul>
+  
+  <h2>File Format</h2>
+  <h3>File Mode (No Password)</h3>
+  <ul>
+    <li><strong>Header:</strong> 1 byte, value 0x00.</li>
+    <li><strong>Nonce:</strong> 32 bytes of random data.</li>
+    <li><strong>Authentication Tag:</strong> 32 bytes (HMAC over nonce and ciphertext).</li>
+    <li><strong>Ciphertext:</strong> The encrypted data.</li>
+  </ul>
+  
+  <h3>Password Mode</h3>
+  <ul>
+    <li><strong>Header:</strong> 1 byte, value 0x01.</li>
+    <li><strong>Nonce:</strong> 32 bytes of random data.</li>
+    <li><strong>Salt1:</strong> 16 bytes used to derive the encryption key.</li>
+    <li><strong>Salt2:</strong> 16 bytes used to derive the MAC key.</li>
+    <li><strong>Authentication Tag:</strong> 32 bytes (HMAC over nonce and ciphertext).</li>
+    <li><strong>Ciphertext:</strong> The encrypted data.</li>
+  </ul>
+  
+  <h2>How It Works</h2>
+  <h3>Encryption Process</h3>
+  <p>
+    1. <strong>Nonce Generation:</strong>  
+       A 32-byte random nonce is generated for each encryption operation.
+  </p>
+  <p>
+    2. <strong>Key Derivation:</strong>
+    <br>
+    - In <strong>File Mode</strong>: The app reads <code>1.key</code> and <code>2.key</code> from disk, ensuring each is exactly 32 bytes.
+    <br>
+    - In <strong>Password Mode</strong>: Two random 16-byte salts are generated. Argon2 uses the provided password and each salt to derive a 32-byte encryption key and a 32-byte MAC key, respectively.
+  </p>
+  <p>
+    3. <strong>Keystream Generation:</strong>  
+       A pseudorandom keystream is produced using a counter-mode HMAC-SHA256 construction based on the encryption key and nonce. This keystream is as long as the plaintext.
+  </p>
+  <p>
+    4. <strong>Encryption:</strong>  
+       The plaintext is XOR‑ed with the keystream to create the ciphertext.
+  </p>
+  <p>
+    5. <strong>Authentication:</strong>  
+       An HMAC-SHA256 is computed over the nonce and ciphertext using the MAC key, resulting in a 32-byte authentication tag.
+  </p>
+  <p>
+    6. <strong>Output File Composition:</strong>  
+       The app writes a header byte (indicating the mode), followed by the nonce. In password mode, the two salts are then written. Next, the authentication tag is stored, and finally the ciphertext.
+  </p>
+  
+  <h3>Decryption Process</h3>
+  <p>
+    1. The app reads the header byte to determine whether File Mode or Password Mode was used.
+  </p>
+  <p>
+    2. Based on the mode:
+    <br>
+    - In <strong>File Mode</strong>: It reads the nonce and authentication tag from the file and retrieves keys from <code>1.key</code> and <code>2.key</code>.
+    <br>
+    - In <strong>Password Mode</strong>: It reads the nonce, salt1, and salt2 from the file and requires the user to supply the password to re-derive the keys using Argon2.
+  </p>
+  <p>
+    3. The app verifies the authentication tag by recalculating the HMAC. If the tag matches, it regenerates the keystream and recovers the plaintext via XOR.
+  </p>
+  
+  <h2>Usage</h2>
+  <p>
+    The command-line syntax is as follows:
+  </p>
+  <pre><code>./secure &lt;E|D&gt; &lt;input_file&gt; &lt;output_file&gt; [optional password]</code></pre>
+  <p>
+    <strong>Examples:</strong>
+  </p>
+  <ul>
+    <li>
+      <strong>File Mode Encryption (no password):</strong>
+      <br>
+      <code>./secure E plain.txt cipher.txt</code>
+    </li>
+    <li>
+      <strong>Password Mode Encryption (with password):</strong>
+      <br>
+      <code>./secure E plain.txt cipher.txt mypassword</code>
+    </li>
+    <li>
+      <strong>File Mode Decryption:</strong>
+      <br>
+      <code>./secure D cipher.txt decrypted.txt</code>
+    </li>
+    <li>
+      <strong>Password Mode Decryption:</strong>
+      <br>
+      <code>./secure D cipher.txt decrypted.txt mypassword</code>
+    </li>
+  </ul>
+  
+  <h2>Build Instructions</h2>
+  <ol>
+    <li>
+      Install the Rust toolchain from <a href="https://rustup.rs/" target="_blank">rustup.rs</a>.
+    </li>
+    <li>
+      Clone or download the project source code.
+    </li>
+    <li>
+      Build the project using Cargo:
+      <pre><code>cargo build --release</code></pre>
+    </li>
+    <li>
+      The compiled executable will be located in the <code>target/release/</code> directory.
+    </li>
+  </ol>
+  
+  <h2>Dependencies</h2>
+  <p>
+    This project relies on the following Rust crates:
+  </p>
+  <ul>
+    <li><strong>rand:</strong> For secure random number generation.</li>
+    <li><strong>hmac:</strong> For HMAC-SHA256 computations.</li>
+    <li><strong>sha2:</strong> For the SHA256 hash function.</li>
+    <li><strong>argon2:</strong> For robust password-based key derivation (with the <code>password-hash</code> feature enabled).</li>
+  </ul>
+  <p>
+    Ensure these dependencies are listed in your <code>Cargo.toml</code> file.
+  </p>
+  
+  <h2>Security Considerations</h2>
+  <ul>
+    <li>
+      <strong>Custom Encryption Caution:</strong>  
+      This tool is intended for educational and study purposes. Although it uses secure primitives, it has not been subjected to extensive security audits. For production use, consider established encryption standards like AES-GCM or ChaCha20-Poly1305.
+    </li>
+    <li>
+      <strong>Key Management:</strong>  
+      In File Mode, make sure that <code>1.key</code> and <code>2.key</code> are generated using a cryptographically secure random number generator and stored securely. In Password Mode, the keys are derived on-the-fly, and only the salts (which are not secret) are stored in the encrypted file.
+    </li>
+    <li>
+      <strong>Nonce Uniqueness:</strong>  
+      A new random nonce is generated for every encryption operation to prevent keystream reuse.
+    </li>
+  </ul>
+  
+  <h2>Disclaimer</h2>
+  <p>
+    This encryption tool is provided for educational purposes only. While every effort has been made to follow robust cryptographic practices, it is not recommended for securing highly sensitive data in production environments. Always use well-vetted encryption standards and libraries for production use.
+  </p>
+</body>
+</html>
+
