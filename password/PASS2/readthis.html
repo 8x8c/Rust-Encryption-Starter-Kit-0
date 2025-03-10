@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passphrase Encryptor v2 - README</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      line-height: 1.6;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #222;
+    }
+    code {
+      background-color: #eee;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    pre {
+      background: #eee;
+      padding: 1em;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    a {
+      color: #007acc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Passphrase Encryptor v2</h1>
+  <p>
+    Passphrase Encryptor v2 is a modern, highly secure Rust application for password-based file encryption and decryption.
+    It uses Argon2id for key derivation and ChaCha20‑Poly1305 for authenticated encryption, providing both confidentiality and integrity.
+  </p>
+  
+  <h2>Overview</h2>
+  <p>
+    This tool is designed to mimic the passphrase option found in advanced encryption utilities (like rage), but with a focus on maximum security.
+    The application derives a 32-byte symmetric key from a user-supplied password using Argon2id and then encrypts/decrypts files using ChaCha20‑Poly1305.
+  </p>
+  
+  <h2>How It Works</h2>
+  
+  <h3>Key Derivation with Argon2id</h3>
+  <p>
+    Instead of using scrypt, this version uses Argon2id—a state-of-the-art key derivation function that is both memory-hard and resistant to side-channel attacks.
+    Key derivation involves:
+  </p>
+  <ul>
+    <li>
+      <strong>Salt:</strong> A unique 16-byte random salt is generated for each encryption. This ensures that even if the same password is used repeatedly,
+      the derived key is different every time.
+    </li>
+    <li>
+      <strong>High-Security Parameters:</strong>
+      <ul>
+        <li><code>Memory Cost:</code> 262144 KiB (256 MB) — This high memory requirement makes brute-force attacks using GPUs/ASICs very difficult.</li>
+        <li><code>Time Cost:</code> 4 iterations — The hash is computed multiple times, further slowing down attackers.</li>
+        <li><code>Parallelism:</code> 4 lanes — Optimizes performance on modern multi-threaded hardware while retaining resistance to parallel attacks.</li>
+      </ul>
+    </li>
+    <li>
+      The output is a 32-byte key that is used for encryption.
+    </li>
+  </ul>
+  
+  <h3>Encryption with ChaCha20‑Poly1305</h3>
+  <p>
+    Once the key is derived, the application uses the ChaCha20‑Poly1305 AEAD cipher to encrypt the file.
+    This cipher is renowned for its speed and security and provides:
+  </p>
+  <ul>
+    <li><strong>Confidentiality:</strong> Ensuring that your data remains secret.</li>
+    <li><strong>Integrity:</strong> Verifying that the data has not been tampered with.</li>
+  </ul>
+  <p>
+    A random 12-byte nonce is generated for each encryption session. Both the salt and nonce are stored in the file header to enable proper decryption.
+  </p>
+  
+  <h3>File Format</h3>
+  <p>
+    The encrypted file is structured as follows:
+  </p>
+  <ul>
+    <li><strong>Salt (16 bytes):</strong> Used for key derivation.</li>
+    <li><strong>Nonce (12 bytes):</strong> Used for the ChaCha20‑Poly1305 cipher.</li>
+    <li><strong>Ciphertext:</strong> The encrypted data.</li>
+  </ul>
+  
+  <h2>Security Considerations</h2>
+  <p>
+    The security of this tool is built on several pillars:
+  </p>
+  <ul>
+    <li>
+      <strong>Argon2id:</strong> Its memory-hard design significantly increases the cost of brute-force attacks,
+      especially on hardware optimized for parallel computation.
+    </li>
+    <li>
+      <strong>ChaCha20‑Poly1305:</strong> A highly secure and fast AEAD cipher that ensures both confidentiality and data integrity.
+    </li>
+    <li>
+      <strong>Password Strength:</strong> The overall security is dependent on the quality of the password.
+      It is recommended to use a passphrase of at least 12–16 characters that includes a mix of upper and lower case letters, numbers, and symbols.
+    </li>
+    <li>
+      <strong>High-Security Parameters:</strong> The Argon2id parameters (256 MB memory, 4 iterations, 4 lanes) are chosen to be robust against brute-force attempts,
+      assuming a modern hardware setup.
+    </li>
+  </ul>
+  
+  <h2>Usage</h2>
+  <p>
+    To build and use Passphrase Encryptor v2, follow these steps:
+  </p>
+  
+  <h3>Build</h3>
+  <pre><code>cargo build --release</code></pre>
+  
+  <h3>Run</h3>
+  <p>
+    The application accepts command-line arguments in the following format:
+  </p>
+  <pre><code>./passphrase_encryptor_v2 E|D &lt;input_file&gt; &lt;output_file&gt; &lt;password&gt;</code></pre>
+  <ul>
+    <li><strong>E</strong> for encryption</li>
+    <li><strong>D</strong> for decryption</li>
+  </ul>
+  <p>
+    For example:
+  </p>
+  <ul>
+    <li>To encrypt a file:
+      <pre><code>./passphrase_encryptor_v2 E plaintext.txt encrypted.enc myStrongPassphrase</code></pre>
+    </li>
+    <li>To decrypt a file:
+      <pre><code>./passphrase_encryptor_v2 D encrypted.enc decrypted.txt myStrongPassphrase</code></pre>
+    </li>
+  </ul>
+  
+  <h2>Technical Details</h2>
+  <p>
+    This version uses the following Rust crates:
+  </p>
+  <ul>
+    <li><code>argon2</code> for the Argon2id key derivation function.</li>
+    <li><code>chacha20poly1305</code> for authenticated encryption.</li>
+    <li><code>rand</code> for generating secure random salts and nonces.</li>
+  </ul>
+  <p>
+    The program reads the entire file into memory for simplicity, then writes out an encrypted file that starts with the salt (16 bytes), 
+    followed by the nonce (12 bytes), and finally the ciphertext.
+  </p>
+  
+  <h2>Limitations & Future Work</h2>
+  <ul>
+    <li>
+      <strong>Streaming:</strong> Currently, the application loads the entire file into memory. Future improvements could include streaming support for very large files.
+    </li>
+    <li>
+      <strong>CLI Enhancements:</strong> Using a more robust command-line parser (e.g., Clap) could add additional features and improve usability.
+    </li>
+  </ul>
+  
+  <h2>Disclaimer</h2>
+  <p>
+    This software is provided for educational and experimental purposes. While it uses strong cryptographic primitives and robust parameters,
+    it has not undergone a formal security audit. Use it at your own risk, especially when handling sensitive data.
+  </p>
+</body>
+</html>
+
