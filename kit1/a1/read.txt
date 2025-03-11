@@ -1,0 +1,7 @@
+readthis.txt
+
+requires key.key in same dir as the executable. 
+
+key has to be as big as or larger than the input file. 
+
+xors the key with input byte for byte- outputs to a new file 

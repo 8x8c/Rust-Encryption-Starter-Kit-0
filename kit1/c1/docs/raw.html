@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Convert SHA3-256 Hex to 32-Byte Key</title>
+</head>
+<body>
+
+<h2>SHA3-256 (64 hex chars) → 32-Byte Key</h2>
+
+<p>Paste your SHA3-256 hash (64 hex chars) here:</p>
+<input id="hexInput" type="text" size="80" placeholder="e.g. 720e4ab295a42f1d..." />
+
+<button onclick="convertHexToKey()">Convert</button>
+
+<pre id="output"></pre>
+
+<script>
+  function convertHexToKey() {
+    const hexStr = document.getElementById("hexInput").value.trim().toLowerCase();
+
+    // Validate input length and characters
+    if (hexStr.length !== 64) {
+      document.getElementById("output").textContent = 
+        "Error: SHA3-256 hash must be exactly 64 hex characters.";
+      return;
+    }
+    if (!/^[0-9a-f]+$/.test(hexStr)) {
+      document.getElementById("output").textContent = 
+        "Error: Only hexadecimal digits (0-9, a-f) are allowed.";
+      return;
+    }
+
+    // Convert hex string → 32 bytes (Uint8Array)
+    const byteArray = new Uint8Array(32);
+    for (let i = 0; i < 64; i += 2) {
+      byteArray[i / 2] = parseInt(hexStr.slice(i, i + 2), 16);
+    }
+
+    // Convert the raw bytes to Base64 for convenient copying
+    let binaryStr = "";
+    for (let b of byteArray) {
+      binaryStr += String.fromCharCode(b);
+    }
+    const base64Key = btoa(binaryStr);
+
+    // Show results
+    // 1) Hex input (sanity check)
+    // 2) 32 raw bytes in JavaScript array format
+    // 3) Base64-encoded 256-bit key
+    document.getElementById("output").textContent =
+      "Hex Input: " + hexStr + "\n\n" +
+      "Raw Bytes (Uint8Array): " + JSON.stringify(Array.from(byteArray)) + "\n\n" +
+      "Base64 Key: " + base64Key;
+  }
+</script>
+
+</body>
+</html>
+

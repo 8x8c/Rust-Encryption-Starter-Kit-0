@@ -1,0 +1,12 @@
+[package]
+name = "b1"
+version = "0.1.0"
+edition = "2024"
+
+
+
+[dependencies]
+aes-gcm = "0.10"       # For authenticated encryption with AES-256-GCM
+clap = "2.33"          # For CLI argument parsing (or upgrade to clap 3 if preferred)
+rand = "0.8"           # For secure random number generation
+

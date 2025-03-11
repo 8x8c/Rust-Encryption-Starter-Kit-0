@@ -1,0 +1,12 @@
+
+Usage: a2 <E|D> <input_filename> <output_filename>
+
+xor (like a1) but this injects a nonce into the cyphertext so the same key and input file will make different cyphertexts each time it is encryptytd. 
+
+The nonce doubles the size of the file but is removed when decrypting. 
+
+It is okay for the nonce to be known (injected into the cyphertext) 
+
+key streams have a 8 12 or 16 byte nonce which is a modern standard - but this is not a stream cypher so 
+its best to have the nonce the full length of the cyphertext. 
+

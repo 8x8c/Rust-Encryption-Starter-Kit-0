@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChaCha20-Poly1305 Encryption/Decryption Explained</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    code {
+      background-color: #f4f4f4;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    pre {
+      background: #f9f9f9;
+      padding: 1rem;
+      border-left: 4px solid #ccc;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChaCha20-Poly1305 Encryption/Decryption</h1>
+  <p>
+    ChaCha20-Poly1305 is an <strong>authenticated encryption</strong> algorithm. It combines the <em>ChaCha20</em> stream cipher for encryption with the <em>Poly1305</em> message authentication code (MAC) for integrity verification. This dual mechanism ensures that data is both confidential and tamper-evident.
+  </p>
+
+  <div class="section">
+    <h2>Overview</h2>
+    <p>
+      The algorithm is categorized as an <strong>AEAD</strong> (Authenticated Encryption with Associated Data) cipher. It encrypts plaintext into ciphertext and simultaneously generates an authentication tag. During decryption, the authentication tag is verified before any plaintext is revealed, ensuring the data hasn't been altered.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>ChaCha20: The Stream Cipher</h2>
+    <p>
+      ChaCha20 is a modern stream cipher designed by Daniel J. Bernstein. Its design emphasizes simplicity and high performance in software.
+    </p>
+    <h3>Key Features:</h3>
+    <ul>
+      <li><strong>256-bit Key:</strong> Uses a 256-bit key, offering a high level of security.</li>
+      <li><strong>Nonce (Initialization Vector):</strong> Typically a 96-bit (12-byte) value. Each encryption must use a unique nonce with the same key to prevent keystream reuse.</li>
+      <li><strong>Block Function:</strong> ChaCha20 operates on a 4x4 matrix of 32-bit words. The matrix is initialized with constants, the key, a counter, and the nonce. Through 20 rounds of simple arithmetic operations (addition, XOR, and rotation), it produces a pseudorandom keystream.</li>
+      <li><strong>Encryption/Decryption:</strong> The generated keystream is XORed with the plaintext to produce ciphertext. Because XOR is its own inverse, applying the same keystream to the ciphertext recovers the original plaintext.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Poly1305: The Message Authentication Code (MAC)</h2>
+    <p>
+      Poly1305 is used to compute a unique authentication tag for each message. This tag ensures that the ciphertext (and any additional authenticated data) has not been tampered with.
+    </p>
+    <h3>Key Features:</h3>
+    <ul>
+      <li><strong>One-Time Key:</strong> Poly1305 uses a one-time key derived from the main key and other parameters. This key must never be reused with the same nonce.</li>
+      <li><strong>Tag Generation:</strong> It produces a 16-byte tag based on the ciphertext (and optional associated data). This tag is then verified during decryption.</li>
+      <li><strong>Integrity Check:</strong> Any alteration in the ciphertext or associated data will result in a failed tag verification during decryption.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>How They Work Together</h2>
+    <p>
+      In ChaCha20-Poly1305, the encryption and authentication processes are combined to provide both confidentiality and integrity:
+    </p>
+    <ol>
+      <li><strong>Encryption:</strong>
+        <ul>
+          <li>The plaintext is encrypted using ChaCha20 with a unique nonce to produce the ciphertext.</li>
+          <li>Poly1305 computes an authentication tag over the ciphertext (and any additional data) using a one-time key.</li>
+          <li>The output is typically the nonce, the ciphertext, and the tag. Often the nonce is prepended to the ciphertext, with the tag appended or stored separately.</li>
+        </ul>
+      </li>
+      <li><strong>Decryption:</strong>
+        <ul>
+          <li>The recipient extracts the nonce, ciphertext, and authentication tag.</li>
+          <li>Poly1305 is used to verify the authentication tag. If the tag is invalid, decryption fails, protecting against tampering.</li>
+          <li>If the tag is valid, the ciphertext is decrypted using ChaCha20 with the nonce and key, recovering the original plaintext.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>Detailed Encryption Process</h2>
+    <ol>
+      <li><strong>Key and Nonce Setup:</strong>  
+        <p>The system uses a 256-bit secret key. For each encryption operation, a unique 12-byte nonce is generated (using a secure random number generator).</p>
+      </li>
+      <li><strong>Keystream Generation:</strong>  
+        <p>
+          The ChaCha20 algorithm takes the key, nonce, and a counter (often starting at zero) and processes them through 20 rounds of mixing operations to produce a keystream.
+        </p>
+      </li>
+      <li><strong>Encryption via XOR:</strong>  
+        <p>
+          The plaintext is divided into 64-byte blocks. Each block is XORed with the corresponding block of the keystream, resulting in the ciphertext.
+        </p>
+      </li>
+      <li><strong>Authentication Tag Creation:</strong>  
+        <p>
+          The Poly1305 algorithm computes a 16-byte authentication tag over the ciphertext (and any associated data) using a one-time key. This tag will later be used to verify the integrity of the message.
+        </p>
+      </li>
+      <li><strong>Output Assembly:</strong>  
+        <p>
+          Typically, the nonce is prepended to the ciphertext, and the authentication tag is either appended or stored alongside. This bundled output is then transmitted or stored.
+        </p>
+      </li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>Detailed Decryption Process</h2>
+    <ol>
+      <li><strong>Extract Nonce, Ciphertext, and Tag:</strong>  
+        <p>
+          The decryption process starts by reading the nonce, ciphertext, and authentication tag from the input.
+        </p>
+      </li>
+      <li><strong>Verify the Authentication Tag:</strong>  
+        <p>
+          Using the same key and nonce, Poly1305 recomputes the authentication tag from the ciphertext (and any associated data). If the computed tag matches the received tag, the data is considered authentic; otherwise, decryption is aborted.
+        </p>
+      </li>
+      <li><strong>Keystream Regeneration:</strong>  
+        <p>
+          ChaCha20 regenerates the keystream using the key, nonce, and counter (the same parameters used during encryption).
+        </p>
+      </li>
+      <li><strong>Decryption via XOR:</strong>  
+        <p>
+          The ciphertext is XORed with the regenerated keystream to recover the original plaintext.
+        </p>
+      </li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>Summary</h2>
+    <p>
+      ChaCha20-Poly1305 provides a robust, secure, and efficient method of authenticated encryption. By combining the speed and simplicity of the ChaCha20 stream cipher with the strong integrity guarantees of Poly1305, it ensures that any tampering with the ciphertext is immediately detected while keeping the data confidential.
+    </p>
+    <p>
+      This design is widely used in modern protocols and applications, especially where hardware acceleration for AES might not be available, making it an excellent choice for a variety of secure communication and storage needs.
+    </p>
+  </div>
+</body>
+</html>
+
