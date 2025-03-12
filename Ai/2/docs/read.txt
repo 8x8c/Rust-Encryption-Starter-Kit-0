@@ -1,0 +1,3 @@
+./secure-file-encryptor encrypt -i api.html -o encrypted.html -p "YourStrongPassword"
+
+./secure-file-encryptor decrypt -i encrypted.html -o decrypted.html -p "YourStrongPassword"
