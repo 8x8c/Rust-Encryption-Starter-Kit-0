@@ -1,0 +1,12 @@
+[package]
+name = "secure_file_crypto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aes-gcm = "0.10"         # AES-256-GCM implementation
+argon2 = "0.4"           # Argon2 for password-based key derivation
+rand = "0.8"             # Secure random number generation
+clap = { version = "4.1", features = ["derive"] }  # CLI argument parsing
+anyhow = "1.0"           # Error handling
+

@@ -1,0 +1,4 @@
+./secure_file_crypto encrypt api.html output.html --password "your_password_here"
+
+
+./secure_file_crypto decrypt output.html decrypted.html --password "your_password_here"

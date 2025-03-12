@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure File Crypto - README</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      max-width: 900px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Secure File Crypto</h1>
+    <p><strong>Version:</strong> 0.1.0</p>
+    <p>A production‑ready Rust CLI tool for secure file encryption and decryption using modern cryptographic techniques.</p>
+
+    <div class="section">
+      <h2>Overview</h2>
+      <p>
+        Secure File Crypto is a command‑line application written in Rust that allows you to securely encrypt and decrypt files.
+        It uses <strong>AES‑256 GCM</strong> for authenticated encryption, ensuring both confidentiality and integrity of your data.
+        The encryption key is derived from a user‑supplied password using the Argon2id key derivation function with a randomly generated salt.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>How It Works</h2>
+      <h3>Encryption Process</h3>
+      <ol>
+        <li>
+          <strong>Read Plaintext:</strong> The application reads the content of the file to be encrypted.
+        </li>
+        <li>
+          <strong>Generate Salt:</strong> A random 16‑byte salt is generated using a secure random number generator. This salt is used in key derivation.
+        </li>
+        <li>
+          <strong>Key Derivation:</strong> The user‑provided password and the generated salt are used with the Argon2id function to derive a 32‑byte key.
+          This key is suitable for AES‑256 encryption.
+        </li>
+        <li>
+          <strong>Generate Nonce:</strong> A random 12‑byte nonce is created for the AES‑256 GCM encryption operation.
+        </li>
+        <li>
+          <strong>Encrypt Data:</strong> The plaintext is encrypted using AES‑256 GCM, which produces ciphertext along with an authentication tag.
+        </li>
+        <li>
+          <strong>Write Output File:</strong> The output file is written in the following format:
+          <br>
+          <code>[salt (16 bytes)] [nonce (12 bytes)] [ciphertext]</code>
+          <br>
+          The salt and nonce are stored unencrypted to allow proper key derivation and decryption.
+        </li>
+      </ol>
+
+      <h3>Decryption Process</h3>
+      <ol>
+        <li>
+          <strong>Read Encrypted Data:</strong> The application reads the entire encrypted file.
+        </li>
+        <li>
+          <strong>Extract Parameters:</strong> The first 16 bytes are extracted as the salt, the next 12 bytes as the nonce, and the remaining bytes as the ciphertext.
+        </li>
+        <li>
+          <strong>Key Derivation:</strong> The same Argon2id function is used with the provided password and extracted salt to derive the 32‑byte key.
+        </li>
+        <li>
+          <strong>Decrypt Data:</strong> The ciphertext is decrypted using AES‑256 GCM with the derived key and extracted nonce. If the decryption fails (e.g., due to an incorrect password or data tampering), an error is reported.
+        </li>
+        <li>
+          <strong>Write Plaintext File:</strong> The decrypted plaintext is written to the specified output file.
+        </li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>Project Structure</h2>
+      <h3>Cargo.toml</h3>
+      <p>
+        The <code>Cargo.toml</code> file defines the project metadata and lists the required dependencies:
+      </p>
+      <pre><code>[package]
+name = "secure_file_crypto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aes-gcm = "0.10"         # AES-256-GCM implementation
+argon2 = "0.4"           # Argon2 for password-based key derivation
+rand = "0.8"             # Secure random number generation
+clap = { version = "4.1", features = ["derive"] }  # CLI argument parsing
+anyhow = "1.0"           # Error handling
+      </code></pre>
+
+      <h3>src/main.rs</h3>
+      <p>
+        The <code>main.rs</code> file contains the application logic for both encryption and decryption.
+        The code uses <code>clap</code> for parsing command-line arguments, <code>rand</code> for generating random salts and nonces,
+        <code>argon2</code> for deriving the encryption key, and <code>aes-gcm</code> for performing the authenticated encryption.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Usage</h2>
+      <h3>Encryption</h3>
+      <pre><code>$ secure_file_crypto encrypt input.txt output.enc --password "your_password_here"</code></pre>
+      <p>
+        This command encrypts the file <code>input.txt</code> using the password provided and writes the encrypted data to <code>output.enc</code>.
+      </p>
+      
+      <h3>Decryption</h3>
+      <pre><code>$ secure_file_crypto decrypt output.enc decrypted.txt --password "your_password_here"</code></pre>
+      <p>
+        This command decrypts the file <code>output.enc</code> using the provided password and writes the resulting plaintext to <code>decrypted.txt</code>.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Security Considerations</h2>
+      <ul>
+        <li>
+          <strong>AES‑256 GCM:</strong> Provides both encryption and authentication. The nonce must be unique for each encryption operation.
+        </li>
+        <li>
+          <strong>Argon2id:</strong> A secure key derivation function that makes brute-force attacks more difficult by using memory and computational hardness.
+        </li>
+        <li>
+          <strong>Salt and Nonce:</strong> Both values are stored with the ciphertext. Although they are not secret, they are critical for key derivation and encryption integrity.
+        </li>
+        <li>
+          <strong>Error Handling:</strong> The app uses the <code>anyhow</code> crate for robust error reporting. In production, further enhancements like logging and secure memory management (e.g., using the <code>zeroize</code> crate) are recommended.
+        </li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Conclusion</h2>
+      <p>
+        This secure file encryption CLI tool provides a robust starting point for applications requiring file-level encryption. By combining strong cryptographic primitives with safe Rust practices,
+        it serves as a reliable solution for encrypting and decrypting sensitive files. Always review and test cryptographic code thoroughly in your specific production environment.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+
