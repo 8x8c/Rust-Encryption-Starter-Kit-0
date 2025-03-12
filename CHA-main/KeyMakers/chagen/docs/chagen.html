@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chagen - Key Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2em auto;
+      padding: 0 1em;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #222;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 1em;
+      border: 1px solid #ddd;
+      overflow-x: auto;
+    }
+    code {
+      font-family: Consolas, monospace;
+    }
+    ul {
+      margin-left: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chagen - Key Generator</h1>
+  <p>
+    <strong>Chagen</strong> is a lightweight command‑line tool written in Rust that generates a 32‑byte key and writes it to a file named <code>key.key</code>. It offers two key generation modes:
+  </p>
+  <ul>
+    <li>
+      <strong>Randomized Mode (-R):</strong> Uses the operating system’s random number generator to produce a truly random key.
+    </li>
+    <li>
+      <strong>Deterministic Mode (-D):</strong> Prompts the user for a password and then deterministically generates a key by hashing the password together with compile‑time constants (<em>salt</em> and <em>pepper</em>). This means that even with the same password, changing the compile‑time parameters will result in a different key.
+    </li>
+  </ul>
+
+  <h2>Key Features</h2>
+  <ul>
+    <li><strong>Simplicity:</strong> Minimal interface with only one required flag and no extraneous output.</li>
+    <li><strong>Flexibility:</strong> Choose between high-entropy random key generation or reproducible deterministic key generation.</li>
+    <li><strong>Customizability:</strong> For deterministic mode, compile‑time values for <code>SALT</code> and <code>PEPPER</code> can be overridden using environment variables (<code>CHAGEN_SALT</code> and <code>CHAGEN_PEPPER</code>) to further personalize key generation.</li>
+    <li><strong>Security:</strong> Leverages SHA‑256 for hashing in deterministic mode and a secure OS RNG for random key generation.</li>
+  </ul>
+
+  <h2>How It Works</h2>
+  <p>
+    In <strong>Randomized Mode (-R)</strong>, the tool generates a 32‑byte key using the operating system’s secure random number generator (<code>OsRng</code>). This key is entirely random and non‐reproducible.
+  </p>
+  <p>
+    In <strong>Deterministic Mode (-D)</strong>, the tool first prompts the user for a password. It then computes the SHA‑256 hash of the concatenation of:
+  </p>
+  <ul>
+    <li>The user’s password,</li>
+    <li>A compile‑time constant <code>SALT</code> (default value: <code>"default_salt"</code>), and</li>
+    <li>A compile‑time constant <code>PEPPER</code> (default value: <code>"default_pepper"</code>).</li>
+  </ul>
+  <p>
+    By altering the compile‑time values (via the environment variables <code>CHAGEN_SALT</code> and <code>CHAGEN_PEPPER</code>), even the same password will yield a different key. This adds an extra layer of customization and security.
+  </p>
+
+  <h2>Usage</h2>
+  <p>Invoke <code>chagen</code> from the command line with one of the following options:</p>
+  <h3>Randomized Key Generation</h3>
+  <pre><code>./chagen -R</code></pre>
+  <p>
+    This command generates a random 32‑byte key and writes it to <code>key.key</code>.
+  </p>
+  <h3>Deterministic Key Generation</h3>
+  <pre><code>./chagen -D</code></pre>
+  <p>
+    This command prompts for a password and then generates a deterministic key based on the password, compile‑time <code>SALT</code>, and <code>PEPPER</code>. The resulting key is written to <code>key.key</code>.
+  </p>
+
+  <h2>Compiling the Application</h2>
+  <p>
+    Ensure that Rust and Cargo are installed. Clone the repository, navigate to the project directory, and run:
+  </p>
+  <pre><code>cargo build --release</code></pre>
+  <p>
+    The compiled binary will be available in the <code>target/release</code> directory.
+  </p>
+
+  <h2>Cargo.toml</h2>
+  <p>The following is the <code>Cargo.toml</code> configuration for the project:</p>
+  <pre><code>[package]
+name = "chagen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rand = "0.8"
+sha2 = "0.10"
+rpassword = "7"
+</code></pre>
+
+
+</body>
+</html>
+

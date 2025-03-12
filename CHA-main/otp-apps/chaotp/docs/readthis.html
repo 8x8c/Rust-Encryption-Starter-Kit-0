@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHAOTP File Encryption/Decryption Utility</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #444;
+    }
+    code {
+      background-color: #eee;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    pre {
+      background-color: #eee;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>OTP File Encryption/Decryption Utility</h1>
+  
+  <div class="section">
+    <h2>Overview</h2>
+    <p>
+      This command-line utility, written in Rust, performs XOR encryption or decryption on an input file using a key file named <code>key.key</code> located in the current directory. The tool reads the entire input file into memory, processes it with the XOR operation using the key, and outputs the result.
+    </p>
+  </div>
+  
+  <div class="section">
+    <h2>Features</h2>
+    <ul>
+      <li>Simple XOR encryption/decryption of files.</li>
+      <li>Two operation modes:
+        <ul>
+          <li><strong>Normal Mode:</strong> Specify both input and output file paths.</li>
+          <li><strong>Atomic Overwrite Mode:</strong> Use the <code>-over</code> flag to safely overwrite the input file.</li>
+        </ul>
+      </li>
+      <li>Atomic file replacement in overwrite mode ensures data safety by writing to a temporary file first before replacing the original.</li>
+    </ul>
+  </div>
+  
+  <div class="section">
+    <h2>Usage</h2>
+    <h3>Normal Mode</h3>
+    <p>
+      In normal mode, provide the input file and output file as command line arguments:
+    </p>
+    <pre><code>otp &lt;input_file&gt; &lt;output_file&gt;</code></pre>
+    <p>
+      The tool reads the <code>input_file</code>, applies the XOR operation, and writes the output to <code>output_file</code>.
+    </p>
+    
+    <h3>Atomic Overwrite Mode</h3>
+    <p>
+      To overwrite the input file atomically, use the <code>-over</code> flag followed by the input file:
+    </p>
+    <pre><code>otp -over &lt;input_file&gt;</code></pre>
+    <p>
+      In this mode, the program writes the processed data to a temporary file (in the same directory) and then atomically renames it to replace the original input file.
+    </p>
+  </div>
+  
+  <div class="section">
+    <h2>Compilation</h2>
+    <p>
+      To compile the program, ensure you have Rust installed. Then use Cargo to build the release version:
+    </p>
+    <pre><code>cargo build --release</code></pre>
+    <p>
+      The executable will be located in the <code>target/release</code> directory.
+    </p>
+  </div>
+  
+  <div class="section">
+    <h2>Notes</h2>
+    <ul>
+      <li>The key file (<code>key.key</code>) must be present in the current directory.</li>
+      <li>The key file must be at least as large as the input file; otherwise, the program will exit with an error.</li>
+      <li>This program reads entire files into memory. Ensure you have sufficient memory for large files.</li>
+    </ul>
+  </div>
+  
+  <div class="section">
+    <h2>License</h2>
+    <p>
+      Include your license information here (e.g., MIT License) or remove this section if not applicable.
+    </p>
+  </div>
+</body>
+</html>
+

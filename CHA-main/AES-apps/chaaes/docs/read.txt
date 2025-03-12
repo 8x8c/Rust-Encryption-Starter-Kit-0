@@ -1,0 +1,3 @@
+./chaaes encrypt -i api.html -o encrypted.html -p "YourStrongPassword"
+
+./chaaes decrypt -i encrypted.html -o decrypted.html -p "YourStrongPassword"

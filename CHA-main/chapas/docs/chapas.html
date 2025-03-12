@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chapas - Password Mode File Encryptor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1em;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #222;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 1em;
+      overflow-x: auto;
+      border: 1px solid #ddd;
+    }
+    code {
+      font-family: Consolas, monospace;
+    }
+    ul {
+      margin-left: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chapas - Password Mode File Encryptor</h1>
+  
+  <p><strong>Chapas</strong> is a simple command‑line file encryption tool written in Rust. It encrypts and decrypts files using the <code>XChaCha20-Poly1305</code> algorithm for authenticated encryption and <code>Argon2</code> for secure password‑based key derivation. The application is designed to be minimal and easy to use, prompting the user for a password (with verification on encryption) without any extraneous output.</p>
+
+  <h2>Features</h2>
+  <ul>
+    <li><strong>Password-Based Key Derivation:</strong> Uses Argon2 to derive a 32‑byte key from a user‑provided password and a randomly generated salt.</li>
+    <li><strong>Strong Encryption:</strong> Implements XChaCha20-Poly1305 for authenticated encryption with a 24‑byte random nonce.</li>
+    <li><strong>Simple Command‑Line Interface:</strong> Operates using minimal flags (<code>-E</code> for encryption and <code>-D</code> for decryption) along with input and output file paths.</li>
+    <li><strong>Secure Password Input:</strong> Prompts for a password in silent mode and verifies the password during encryption.</li>
+  </ul>
+
+  <h2>File Format</h2>
+  <p>The encrypted file is structured as follows:</p>
+  <ul>
+    <li><strong>Salt:</strong> 16 bytes (used for key derivation)</li>
+    <li><strong>Nonce:</strong> 24 bytes (used by the XChaCha20-Poly1305 algorithm)</li>
+    <li><strong>Ciphertext:</strong> The actual encrypted data</li>
+  </ul>
+
+  <h2>Usage</h2>
+  <p>Chapas supports two modes: encryption and decryption. The application is invoked from the command line with a flag and two file paths.</p>
+
+  <h3>Encryption</h3>
+  <pre><code>./chapas -E &lt;input_file&gt; &lt;output_file&gt;</code></pre>
+  <p>During encryption, you will be prompted twice to enter your password. Both entries must match.</p>
+
+  <h3>Decryption</h3>
+  <pre><code>./chapas -D &lt;input_file&gt; &lt;output_file&gt;</code></pre>
+  <p>During decryption, you will be prompted once for the password, which is used along with the stored salt to derive the key.</p>
+
+  <h2>How It Works</h2>
+  <ol>
+    <li>
+      <strong>Encryption:</strong>
+      <ul>
+        <li>Reads the plaintext from the specified input file.</li>
+        <li>Prompts the user to enter a password twice and verifies that the two entries match.</li>
+        <li>Generates a random 16‑byte salt and a random 24‑byte nonce.</li>
+        <li>Derives a 32‑byte encryption key from the password and salt using Argon2.</li>
+        <li>Encrypts the plaintext with XChaCha20-Poly1305 using the derived key and nonce.</li>
+        <li>Writes the salt, nonce, and ciphertext to the output file in binary format.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Decryption:</strong>
+      <ul>
+        <li>Reads the encrypted file and extracts the salt (first 16 bytes) and nonce (next 24 bytes).</li>
+        <li>Prompts the user for the password.</li>
+        <li>Derives the key using the provided password and the extracted salt via Argon2.</li>
+        <li>Decrypts the ciphertext using XChaCha20-Poly1305 with the derived key and nonce.</li>
+        <li>Writes the decrypted plaintext to the specified output file.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Compiling the Application</h2>
+  <p>Make sure you have Rust and Cargo installed. Clone the repository, navigate to the project directory, and run:</p>
+  <pre><code>cargo build --release</code></pre>
+  <p>The compiled binary will be available in the <code>target/release</code> directory.</p>
+
+  <h2>Dependencies</h2>
+  <ul>
+    <li><strong>chacha20poly1305</strong>: Provides the XChaCha20-Poly1305 encryption algorithm.</li>
+    <li><strong>rand</strong>: Generates random bytes for salt and nonce.</li>
+    <li><strong>argon2</strong>: Implements the Argon2 key derivation function.</li>
+    <li><strong>rpassword</strong>: Allows secure, silent password input from the command line.</li>
+  </ul>
+
+  <h2>Cargo.toml</h2>
+  <p>Below is the content of the <code>Cargo.toml</code> file:</p>
+  <pre><code>[package]
+name = "chapas"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chacha20poly1305 = "0.10"
+rand = "0.8"
+argon2 = "0.4"
+rpassword = "7"
+</code></pre>
+
+ 
+</body>
+</html>
+

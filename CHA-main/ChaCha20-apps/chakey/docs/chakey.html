@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chakey - Key File Mode File Encryptor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1em;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #222;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 1em;
+      overflow-x: auto;
+      border: 1px solid #ddd;
+    }
+    code {
+      font-family: Consolas, monospace;
+    }
+    ul {
+      margin-left: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chakey - Key File Mode File Encryptor</h1>
+  
+  <p><strong>Chakey</strong> is a lightweight command‑line file encryption tool written in Rust. It encrypts and decrypts files using the <code>XChaCha20-Poly1305</code> algorithm for authenticated encryption. The encryption key is stored in a separate file (<code>key.key</code>), allowing you to manage your key independently of your encrypted data.</p>
+
+  <h2>Features</h2>
+  <ul>
+    <li><strong>Key File Mode:</strong> Reads a 32‑byte key from a file named <code>key.key</code> to perform encryption and decryption.</li>
+    <li><strong>Strong Encryption:</strong> Uses the XChaCha20-Poly1305 algorithm with a 24‑byte random nonce to ensure data confidentiality and integrity.</li>
+    <li><strong>Minimal Command‑Line Interface:</strong> Operates with two simple flags: <code>-E</code> for encryption and <code>-D</code> for decryption, along with input and output file paths.</li>
+    <li><strong>Clean Output:</strong> Displays only error messages and essential prompts, keeping the interface uncluttered.</li>
+  </ul>
+
+  <h2>File Format</h2>
+  <p>The encrypted file produced by Chakey has the following format:</p>
+  <ul>
+    <li><strong>Nonce:</strong> 24 bytes (used by XChaCha20-Poly1305 for encryption)</li>
+    <li><strong>Ciphertext:</strong> The encrypted content of the file</li>
+  </ul>
+
+  <h2>Usage</h2>
+  <p>Chakey supports two primary operations: encryption and decryption.</p>
+
+  <h3>Encryption</h3>
+  <pre><code>./chakey -E &lt;input_file&gt; &lt;output_file&gt;</code></pre>
+  <p>This command encrypts the contents of <code>&lt;input_file&gt;</code> using the key stored in <code>key.key</code> and writes the output (nonce concatenated with ciphertext) to <code>&lt;output_file&gt;</code>.</p>
+
+  <h3>Decryption</h3>
+  <pre><code>./chakey -D &lt;input_file&gt; &lt;output_file&gt;</code></pre>
+  <p>This command decrypts the contents of <code>&lt;input_file&gt;</code> using the key from <code>key.key</code> and writes the recovered plaintext to <code>&lt;output_file&gt;</code>.</p>
+
+  <h2>How It Works</h2>
+  <ol>
+    <li>
+      <strong>Key Loading:</strong>
+      <ul>
+        <li>The application reads a 32‑byte key from a file named <code>key.key</code>.</li>
+        <li>If the key file does not contain exactly 32 bytes, the program produces an error.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Encryption Process:</strong>
+      <ul>
+        <li>Reads the plaintext from the specified input file.</li>
+        <li>Generates a random 24‑byte nonce using a secure random number generator.</li>
+        <li>Encrypts the plaintext with XChaCha20-Poly1305 using the loaded key and generated nonce.</li>
+        <li>Concatenates the nonce and ciphertext, then writes the result to the output file.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Decryption Process:</strong>
+      <ul>
+        <li>Reads the encrypted file and extracts the first 24 bytes as the nonce.</li>
+        <li>Uses the remainder of the file as the ciphertext.</li>
+        <li>Decrypts the ciphertext with XChaCha20-Poly1305 using the key loaded from <code>key.key</code> and the extracted nonce.</li>
+        <li>Writes the resulting plaintext to the specified output file.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Compiling the Application</h2>
+  <p>To compile Chakey, ensure that Rust and Cargo are installed. Then clone the repository, navigate to the project directory, and run:</p>
+  <pre><code>cargo build --release</code></pre>
+  <p>The compiled binary will be available in the <code>target/release</code> directory.</p>
+
+  <h2>Cargo.toml</h2>
+  <p>Below is the content of the <code>Cargo.toml</code> file:</p>
+  <pre><code>[package]
+name = "chakey"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chacha20poly1305 = "0.10"
+rand = "0.8"
+</code></pre>
+
+
+</body>
+</html>
+

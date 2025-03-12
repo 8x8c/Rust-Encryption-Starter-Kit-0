@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chagen1</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1, h2, h3, h4 {
+      color: #333;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    code {
+      font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    ul {
+      margin: 0 0 1em 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CHAGEN1- A Deterministic Key Maker</h1>
+    <p>
+      This application is a deterministic key maker that uses a user-provided password to generate a raw binary key file (<code>key.key</code>). It employs state‐of‐the‐art cryptographic primitives to produce keys that are cryptographically indistinguishable from true random keys – even though the process is completely deterministic.
+    </p>
+	
+	  <h2>Possible password input</h2>
+	<p>The password can indeed be anything that is possible to enter via a keyboard, including uppercase and lowercase letters, digits, and symbols like !@#$%^&*()_+.</p>
+	
+	
+<h2>Number of Possible Keys</h2>
+    
+      The key maker derives a 32-byte (256-bit) seed from the password using Argon2. Since there are <strong>2<sup>256</sup></strong> possible 256-bit values, this tool can generate approximately <strong>1.16 x 10<sup>77</sup></strong> possible keys. This enormous keyspace ensures that even with deterministic generation, the keys are effectively unique and secure.
+    </p>
+    
+    <h2>Features</h2>
+    <ul>
+      <li>
+        <strong>Deterministic Output:</strong> Using a fixed salt and compile-time parameters, the same password always produces the same key.
+      </li>
+      <li>
+        <strong>Cryptographically Secure:</strong> Employs Argon2 for key derivation and ChaCha20 for pseudorandom number generation.
+      </li>
+      <li>
+        <strong>Configurable Parameters:</strong> Key size (up to 5GB), password length, and Argon2 parameters (memory cost, iteration count, parallelism) are all defined via compile-time constants with built-in range checks.
+      </li>
+      <li>
+        <strong>Memory Efficient:</strong> Generates large keys in small chunks to avoid high memory usage.
+      </li>
+      <li>
+        <strong>Raw Binary Output:</strong> The key is saved as raw binary data (all 0–255 byte values), making it suitable for cryptographic use.
+      </li>
+    </ul>
+    
+    <h2>Implementation Details</h2>
+    
+    <h3>1. Argon2 Key Derivation</h3>
+    <p>
+      The application uses Argon2 – a modern, secure key derivation function – to convert the user’s password into a 32-byte seed. The seed is used to initialize the ChaCha20 PRNG.
+    </p>
+    <ul>
+      <li>
+        <strong>Memory Cost:</strong> Determines how much memory (in KiB) Argon2 will use. A higher memory cost increases resistance to GPU-based attacks.  
+        <em>Default:</em> <code>65536 KiB</code> (64 MiB).  
+        <em>Allowed Range:</em> 8192 KiB (8 MiB) to 1048576 KiB (1 GiB).
+      </li>
+      <li>
+        <strong>Iteration Count:</strong> The number of passes over the memory. More iterations make brute-force attacks more expensive.  
+        <em>Default:</em> <code>3</code> iterations.  
+        <em>Allowed Range:</em> 1 to 10 iterations.
+      </li>
+      <li>
+        <strong>Parallelism:</strong> The number of lanes (threads) Argon2 uses.  
+        <em>Default:</em> <code>1</code> lane.  
+        <em>Allowed Range:</em> 1 to 8 lanes.
+      </li>
+      <li>
+        <strong>Fixed Salt:</strong> A compile-time constant (<code>"DeterministicKeySalt_v1"</code>) ensures that the output is deterministic.
+      </li>
+    </ul>
+    <p>
+      These parameters are set as compile-time constants in the source code, with range checks to guarantee that they remain within secure and reasonable values.
+    </p>
+    
+    <h3>2. ChaCha20 Pseudorandom Number Generation</h3>
+    <p>
+      Once the 32-byte seed is derived using Argon2, it is used to seed ChaCha20. ChaCha20 is a stream cipher known for its security and enormous period, which ensures that even when generating keys up to 5GB in size, no repeating patterns occur.
+    </p>
+    
+    <h3>3. Configurable Compile-Time Constants</h3>
+    <p>
+      Several options are exposed as compile-time constants so that you can easily tweak the behavior of the application without modifying core logic. These include:
+    </p>
+    <ul>
+      <li><code>MAX_SIZE</code>: Maximum key size allowed (up to 5GB).</li>
+      <li><code>CHUNK_SIZE</code>: Size of each chunk (in bytes) used to write the key to disk.</li>
+      <li><code>KDF_SALT</code>: The fixed salt used for Argon2 to ensure deterministic behavior.</li>
+      <li><code>MAX_PASSWORD_LENGTH</code>: The maximum allowed password length (to prevent abuse and ensure predictable performance).</li>
+      <li>
+        Argon2 parameters:
+        <ul>
+          <li><code>ARGON2_MEMORY_COST</code></li>
+          <li><code>ARGON2_ITERATIONS</code></li>
+          <li><code>ARGON2_PARALLELISM</code></li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      Each of these options is documented with inline comments in the source code.
+    </p>
+    
+    <h3>4. Error Handling and Validation</h3>
+    <p>
+      The application includes comprehensive error checking:
+    </p>
+    <ul>
+      <li>
+        Validates the number of command-line arguments (expects exactly 2: the key size and the password).
+      </li>
+      <li>
+        Ensures the requested key size is within the allowed range (1 byte to 5GB).
+      </li>
+      <li>
+        Checks that the password is not empty and does not exceed the maximum allowed length.
+      </li>
+      <li>
+        Verifies that the Argon2 parameters (memory cost, iteration count, and parallelism) are within secure and acceptable ranges.
+      </li>
+      <li>
+        Handles file I/O errors when creating or writing the output file.
+      </li>
+    </ul>
+    
+    <h2>Usage Instructions</h2>
+    <p>
+      To build and run the deterministic key maker, follow these steps:
+    </p>
+    <h3>1. Build the Project</h3>
+    <pre><code>cargo build --release</code></pre>
+    <p>
+      This compiles the project in release mode.
+    </p>
+    <h3>2. Run the Program</h3>
+    <p>
+      The application requires two command-line arguments: the key size (in bytes) and the password. For example, to generate a 1024-byte key:
+    </p>
+    <pre><code>./deterministic-keygen 1024 "my_secret_password"</code></pre>
+    <p>
+      The generated key will be written as raw binary data to a file named <code>key.key</code> in the current directory.
+    </p>
+    
+    <h2>How It Works: Step-by-Step Overview</h2>
+    <ol>
+      <li>
+        <strong>Input Validation:</strong> The program first checks that the correct number of arguments is provided, and then verifies that the key size and password are within allowed bounds.
+      </li>
+      <li>
+        <strong>Argon2 Derivation:</strong> The password is processed with Argon2 using the specified parameters (memory cost, iterations, and parallelism) and a fixed salt to generate a 32-byte seed.
+      </li>
+      <li>
+        <strong>Seeding the PRNG:</strong> The derived seed initializes the ChaCha20 pseudorandom number generator.
+      </li>
+      <li>
+        <strong>Key Generation:</strong> ChaCha20 produces a stream of pseudo-random bytes, which are written in chunks to <code>key.key</code> until the desired key size is reached.
+      </li>
+      <li>
+        <strong>Output:</strong> The final output is a binary file containing a key that, although deterministically generated, is cryptographically indistinguishable from a random key.
+      </li>
+    </ol>
+    
+    <h2>Security Considerations</h2>
+    <p>
+      While the deterministic key maker provides a vast keyspace and strong cryptographic security, its strength ultimately depends on the quality of the input password. Weak or common passwords will reduce the effective security. It is highly recommended to use strong, high-entropy passwords.
+    </p>
+    <p>
+      Additionally, note that using a fixed salt is required for determinism but sacrifices the benefits of random salting. This design choice is acceptable when the primary goal is to ensure that the same password always produces the same key.
+    </p>
+    
+    <h2>License</h2>
+    <p>
+      This project is licensed under the MIT License.
+    </p>
+    
+    <h2>Note- </h2>
+    <p>
+     You can use a script or simple app to xor any 2 deterministic keys in order to make a single key. There is no limit to this and the possibilities are vast. 
+
+    </p>
+    
+    <h2>Conclusion</h2>
+    <p>
+      With 2<sup>256</sup> possible keys available, this deterministic key maker provides an exceptionally large keyspace and a robust, secure method for generating deterministic keys. Its extensive configuration options and thorough error handling make it an excellent tool for applications requiring reproducible yet cryptographically secure key generation.
+    </p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[package]
+name = "chaaes"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rand = "0.8"
+aes-gcm = "0.10"
+argon2 = "0.4"
+
